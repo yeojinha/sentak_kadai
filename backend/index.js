@@ -6,7 +6,31 @@ const port = 3000;
 
 const index_data = ["All", "모집", "마감"];
 const list = [];
+const userList = [];
 app.use(express.json());
+//가입
+app.post("/api/todolist/signup", async (req, res) => {
+  console.log("-----------");
+  const userData = req.body;
+  await userList.push(userData);
+
+  console.log(userList);
+  res.send(userList);
+});
+// Login Logout
+//Login_1
+app.post("/api/todolist/login", async (req, res) => {
+  const user = req.body;
+  console.log("back username: " + user.name);
+  console.log("back password: " + user.password);
+
+  const foundUser = await userList.find(
+    (el) => el.info.name == user.name && el.info.password == user.password
+  );
+  console.log("found User: " + JSON.stringify(foundUser));
+  res.send(foundUser);
+});
+//
 //delete
 app.delete("/api/todolist", async (req, res) => {
   try {
@@ -35,10 +59,12 @@ app.post("/api/todolist", async (req, res) => {
   });
   res.send(list);
 });
+
 //list show
 app.get("/api/todolist", (req, res) => {
   res.send(list);
 });
+
 //hide and show
 app.put("/api/todolist", async (req, res) => {
   //find object by id
@@ -46,6 +72,7 @@ app.put("/api/todolist", async (req, res) => {
   found.isActive = req.body.isActive;
   res.send(list);
 });
+
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
 });
