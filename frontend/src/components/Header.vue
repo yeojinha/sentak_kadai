@@ -269,7 +269,7 @@ export default {
         .post("/api/user/signup", user)
         .then((res) => {
           console.log("singUp: " + JSON.stringify(res.data));
-          userData.userList = res.data;
+          userData.user = res.data;
           reset(userData);
 
           console.log(

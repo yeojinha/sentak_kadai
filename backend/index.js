@@ -42,7 +42,7 @@ app.post("/api/user/signup", (req, res) => {
   const userData = req.body;
   userList.push(userData);
   console.log("back----------> " + JSON.stringify(userList));
-  res.send(userList);
+  res.send(userData);
 });
 // Login Logout
 //Login
