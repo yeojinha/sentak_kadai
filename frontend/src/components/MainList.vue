@@ -92,7 +92,6 @@
                   ><i class="fas fa-sort-amount-down-alt ms-2"></i
                 ></a>
               </div>
-
               <!--  ul Challenge List -->
               <div>
                 <div class="card" v-for="item in state.list" :key="item.id">
@@ -258,10 +257,10 @@ export default {
           //clear input
         });
     };
-
     //hide and show button
 
     const hideCardBody = (id) => {
+      // 이거  d-none 부분 해결해야함
       const found = state.list.find((el) => el.id == id);
       found.isActive = !found.isActive;
       const isActive = found.isActive;

@@ -57,7 +57,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Login"
-                  @click="login()"
+                  @click.prevent="login()"
                 />
                 <div class="form-footer">
                   <a href="#">Forgot Your password?</a>
@@ -67,7 +67,9 @@
           </ul>
         </li>
         <li v-else>
-          <a class="dropdown-toggle" href="#" @click="logout()">Logout</a>
+          <button class="btn btn-primary btn-block" @click.prevent="logout()">
+            Logout
+          </button>
         </li>
         <!-- false면 -->
         <li v-if="!userData.user.checked.login_check">
@@ -135,7 +137,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Sign up"
-                  @click="signUp()"
+                  @click.prevent="signUp()"
                 />
               </form>
             </li>
@@ -146,15 +148,13 @@
   </nav>
 </template>
 <script>
-import { restElement } from "@babel/types";
 import axios from "axios";
 import { reactive } from "vue";
-// import axios from "axios";
 export default {
   setup() {
     const userData = reactive({
       userList: [],
-      // foundUser
+
       user: {
         info: {
           password: "",
@@ -168,76 +168,107 @@ export default {
         },
       },
     });
-    const logout = () => {};
+    /////////////////////////reset user data //////////////////////////////
+    const reset = (userData) => {
+      userData.user.checked.accepted = false; //
+      for (let i in userData.user.info) {
+        userData.user.info[i] = "";
+      }
+      for (let i in userData.user.checked) {
+        userData.user.checked[i] = false;
+      }
+    };
+    const empty = () => {
+      userData.user.checked.accepted = false; //
+      for (let i in userData.user.info) {
+        userData.user.info[i] = "";
+      }
+      for (let i in userData.user.checked) {
+        userData.user.checked[i] = false;
+      }
+    };
+    const printCurrentUser = () => {
+      console.log("current user check: " + JSON.stringify(userData.user));
+    };
+    /////////////////////-------------------------//////////////////////////
+
+    //user token check
+    axios.get("/api/user").then((res) => {
+      console.log("front user token check: " + JSON.stringify(res.data));
+      if (res.data && res.data.user.info && res.data.user.checked) {
+        userData.user.info = res.data.user.info;
+        userData.user.checked = res.data.user.checked;
+        console.log(
+          "inside front user token check: " + JSON.stringify(userData.user)
+        );
+      } else {
+        console.log("no login now");
+      }
+    });
+
+    //logout
+    const logout = () => {
+      axios.delete("/api/user/logout").then(() => {
+        empty();
+        printCurrentUser();
+      });
+    };
     const checked = () => {
       //약관동의
       userData.user.checked.accepted = true; //false -> true;
     };
-    //reset 약관동의 false, login_check-> false로 하여 v-if display 표시 유무
-    const reset = (userData) => {
-      userData.user.checked.accepted = false; //
-      for (let i in userData.user) {
-        userData.user.info[i] = "";
-      }
-      for (let i in userData.checked) {
-        userData.user.checked[i] = false;
-      }
-    };
+
     //reset
-    //signIn
+    //logIn
     const login = () => {
-      const data = {
+      const loginUser = {
         name: userData.user.info.name,
         password: userData.user.info.password,
       };
-      console.log("login user: " + JSON.stringify(data));
+      console.log("login user: " + JSON.stringify(loginUser));
 
-      //서버측에 해당 data있는지 check * 현재 login 쪽에서 문제가 생김 수정해야 함
-      axios.post("/api/todolist/login", data).then((res) => {
-        console.log("get found id: " + JSON.stringify(res.data));
+      axios.post("/api/user/login", loginUser).then((res) => {
         if (res.data === undefined || res.data === "") {
-          alert("아이디 혹은 비밀번호 오류입니다.");
+          // if undefined or no user found checking
+          alert("id or password error.");
           reset(userData);
           return;
         }
-        userData.user = res.data;
-        userData.user.checked.login_check = true;
-        console.log(JSON.stringify(res.data));
-      });
-      //데이터 없으면, 서버측에서 handle
 
-      //데이터 있으면 화면표시 username으로 변경하기.
+        //found user
+        userData.user = res.data;
+        // userData.user.checked.login_check = true; // switching login display to logout display
+        console.log("login front check: " + JSON.stringify(userData.user));
+      });
     };
-    //signIn
+    //logIn
     //signUp
     const signUp = () => {
-      //jwt 토큰으로 자동 login 진행
       console.log("first accepted check: " + userData.user.checked.accepted);
+      //check
       for (let i in userData.user) {
         if (userData.user.info[i] === "") {
           console.log(`userData.user[${i}]: ${userData.user.info[i]}`);
-          alert("입력해주세요.");
           reset(userData);
           return;
         }
       }
       if (userData.user.info.password !== userData.user.info.confirm_password) {
         // reset(userData);
-        alert("암호가 일치하지 않습니다.");
+        alert("Wrong password");
         return;
       }
       if (userData.user.checked.accepted === false) {
-        alert("약관 동의를 해주세요.");
         // reset(userData);
         return;
       }
-
+      //check
       const user = userData.user;
 
       axios
-        .post("/api/todolist/signup", user)
+        .post("/api/user/signup", user)
         .then((res) => {
-          console.log("singUp: " + res.data);
+          console.log("singUp: " + JSON.stringify(res.data));
           userData.userList = res.data;
           reset(userData);
 
@@ -249,8 +280,17 @@ export default {
           console.log(err);
         });
     };
-    //signUp
-    return { userData, signUp, checked, reset, login, logout };
+
+    return {
+      userData,
+      signUp,
+      checked,
+      reset,
+      login,
+      logout,
+      empty,
+      printCurrentUser,
+    };
   },
 };
 
