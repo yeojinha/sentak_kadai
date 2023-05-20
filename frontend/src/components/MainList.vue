@@ -185,6 +185,7 @@ export default {
       selected_date: "",
       list: [],
       isNone: true,
+      userName: "",
       //
       formData: {
         id: "",
@@ -209,11 +210,19 @@ export default {
 
     //edit
     const editItem = (id) => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       console.log("edit -> state.item.id : " + id);
     };
 
     //delete
     const deleteItem = (id) => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       const targetItem = state.list.find((el) => el.id == id);
       const pwd = prompt("plz enter the password");
 
@@ -224,8 +233,8 @@ export default {
       axios
         .delete(`/api/todolist/?id=${id}`)
         .then((res) => {
-          console.log("res.data by delete: " + JSON.stringify(res.data));
-          state.list = res.data;
+          console.log("res.data by delete: " + JSON.stringify(res.data.list));
+          state.list = res.data.list;
         })
         .catch((err) => {
           console.log(err);
@@ -233,6 +242,10 @@ export default {
     };
     //add
     const addItem = () => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
 
@@ -241,8 +254,8 @@ export default {
       axios
         .post("/api/todolist", formData)
         .then((res) => {
-          state.list = res.data;
-          console.log("res.data by post: " + JSON.stringify(res.data));
+          state.list = res.data.list;
+          console.log("res.data by post: " + JSON.stringify(res.data.list));
         })
         .catch((err) => {
           console.log(err);
@@ -270,15 +283,29 @@ export default {
           id,
         })
         .then((res) => {
-          state.list = res.data;
+          state.list = res.data.list;
 
-          console.log("res.data by get: " + JSON.stringify(res.data));
+          console.log("res.data by get: " + JSON.stringify(res.data.list));
         });
     };
 
     //show
     axios.get("/api/todolist").then((res) => {
-      state.list = res.data;
+      console.log(
+        "front mainList.vue user token check: " + JSON.stringify(res.data)
+      );
+      if (res.data.user) {
+        console.log(
+          "front if(res.data.user): " + JSON.stringify(res.data.user)
+        );
+        state.list = res.data.list;
+        state.userName = res.data.user.user.info.name;
+      } else {
+        console.log("front if(!res.data.user)" + JSON.stringify(res.data));
+        state.list = res.data;
+      }
+
+      console.log("mainList.vue: " + JSON.stringify(state.userName));
     });
 
     return { state, addItem, deleteItem, editItem, hideCardBody };
