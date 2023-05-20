@@ -57,7 +57,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Login"
-                  @click.prevent="login()"
+                  @click="login()"
                 />
                 <div class="form-footer">
                   <a href="#">Forgot Your password?</a>
@@ -67,7 +67,7 @@
           </ul>
         </li>
         <li v-else>
-          <button class="btn btn-primary btn-block" @click.prevent="logout()">
+          <button class="btn btn-primary btn-block" @click="logout()">
             Logout
           </button>
         </li>
@@ -137,7 +137,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Sign up"
-                  @click.prevent="signUp()"
+                  @click="signUp()"
                 />
               </form>
             </li>
@@ -211,6 +211,7 @@ export default {
       axios.delete("/api/user/logout").then(() => {
         empty();
         printCurrentUser();
+        window.location.reload(); //refresh cuz button doesn't refresh itself
       });
     };
     const checked = () => {
@@ -239,6 +240,7 @@ export default {
         userData.user = res.data;
         // userData.user.checked.login_check = true; // switching login display to logout display
         console.log("login front check: " + JSON.stringify(userData.user));
+        window.location.reload();
       });
     };
     //logIn
