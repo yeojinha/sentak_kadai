@@ -46,7 +46,7 @@
                     v-model="state.formData.content"
                   ></textarea>
                 </div>
-                <div class="form-group">
+                <!-- <div class="form-group">
                   <label for="password">Password</label>
                   <input
                     type="password"
@@ -55,7 +55,7 @@
                     placeholder="Password"
                     v-model="state.formData.password"
                   />
-                </div>
+                </div> -->
                 <div>
                   <button
                     type="button"
@@ -189,11 +189,10 @@ export default {
       //
       formData: {
         id: "",
-        email: "",
         title: "",
         content: "",
         createdAt: "",
-        password: "",
+        userName: "",
         isActive: true,
       },
     });
@@ -224,10 +223,10 @@ export default {
         return;
       }
       const targetItem = state.list.find((el) => el.id == id);
-      const pwd = prompt("plz enter the password");
-
-      if (pwd !== targetItem.password || pwd === null) {
-        alert("Wrong password or nothing entered");
+      console.log("target Item : " + JSON.stringify(targetItem));
+      if (state.userName !== targetItem.userName) {
+        //if cnt user has no right to delete the content return;
+        alert("You aren't authorized to delete this content.");
         return;
       }
       axios
@@ -248,9 +247,10 @@ export default {
       }
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
-
+      //userName put into state.formData.userName
+      state.formData.userName = state.userName;
       const formData = state.formData;
-      console.log("formData id-> " + formData.id);
+      console.log("add formData-> " + JSON.stringify(formData));
       axios
         .post("/api/todolist", formData)
         .then((res) => {
@@ -266,7 +266,8 @@ export default {
           state.formData.title = "";
           state.formData.content = "";
           state.formData.createdAt = "";
-          state.formData.password = "";
+          state.formData.userName = "";
+          state.userName = "";
           //clear input
         });
     };
@@ -305,7 +306,7 @@ export default {
         state.list = res.data;
       }
 
-      console.log("mainList.vue: " + JSON.stringify(state.userName));
+      console.log("mainList.vue: " + JSON.stringify(state.list));
     });
 
     return { state, addItem, deleteItem, editItem, hideCardBody };
