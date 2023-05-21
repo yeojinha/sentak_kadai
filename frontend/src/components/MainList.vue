@@ -46,7 +46,7 @@
                     v-model="state.formData.content"
                   ></textarea>
                 </div>
-                <div class="form-group">
+                <!-- <div class="form-group">
                   <label for="password">Password</label>
                   <input
                     type="password"
@@ -55,7 +55,7 @@
                     placeholder="Password"
                     v-model="state.formData.password"
                   />
-                </div>
+                </div> -->
                 <div>
                   <button
                     type="button"
@@ -185,14 +185,14 @@ export default {
       selected_date: "",
       list: [],
       isNone: true,
+      userName: "",
       //
       formData: {
         id: "",
-        email: "",
         title: "",
         content: "",
         createdAt: "",
-        password: "",
+        userName: "",
         isActive: true,
       },
     });
@@ -209,23 +209,31 @@ export default {
 
     //edit
     const editItem = (id) => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       console.log("edit -> state.item.id : " + id);
     };
 
     //delete
     const deleteItem = (id) => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       const targetItem = state.list.find((el) => el.id == id);
-      const pwd = prompt("plz enter the password");
-
-      if (pwd !== targetItem.password || pwd === null) {
-        alert("Wrong password or nothing entered");
+      console.log("target Item : " + JSON.stringify(targetItem));
+      if (state.userName !== targetItem.userName) {
+        //if cnt user has no right to delete the content return;
+        alert("You aren't authorized to delete this content.");
         return;
       }
       axios
         .delete(`/api/todolist/?id=${id}`)
         .then((res) => {
-          console.log("res.data by delete: " + JSON.stringify(res.data));
-          state.list = res.data;
+          console.log("res.data by delete: " + JSON.stringify(res.data.list));
+          state.list = res.data.list;
         })
         .catch((err) => {
           console.log(err);
@@ -233,16 +241,21 @@ export default {
     };
     //add
     const addItem = () => {
+      if (!state.userName || state.userName == "") {
+        alert("Plz Login first!");
+        return;
+      }
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
-
+      //userName put into state.formData.userName
+      state.formData.userName = state.userName;
       const formData = state.formData;
-      console.log("formData id-> " + formData.id);
+      console.log("add formData-> " + JSON.stringify(formData));
       axios
         .post("/api/todolist", formData)
         .then((res) => {
-          state.list = res.data;
-          console.log("res.data by post: " + JSON.stringify(res.data));
+          state.list = res.data.list;
+          console.log("res.data by post: " + JSON.stringify(res.data.list));
         })
         .catch((err) => {
           console.log(err);
@@ -253,7 +266,8 @@ export default {
           state.formData.title = "";
           state.formData.content = "";
           state.formData.createdAt = "";
-          state.formData.password = "";
+          state.formData.userName = "";
+          state.userName = "";
           //clear input
         });
     };
@@ -270,15 +284,29 @@ export default {
           id,
         })
         .then((res) => {
-          state.list = res.data;
+          state.list = res.data.list;
 
-          console.log("res.data by get: " + JSON.stringify(res.data));
+          console.log("res.data by get: " + JSON.stringify(res.data.list));
         });
     };
 
     //show
     axios.get("/api/todolist").then((res) => {
-      state.list = res.data;
+      console.log(
+        "front mainList.vue user token check: " + JSON.stringify(res.data)
+      );
+      if (res.data.user) {
+        console.log(
+          "front if(res.data.user): " + JSON.stringify(res.data.user)
+        );
+        state.list = res.data.list;
+        state.userName = res.data.user.user.info.name;
+      } else {
+        console.log("front if(!res.data.user)" + JSON.stringify(res.data));
+        state.list = res.data;
+      }
+
+      console.log("mainList.vue: " + JSON.stringify(state.list));
     });
 
     return { state, addItem, deleteItem, editItem, hideCardBody };
