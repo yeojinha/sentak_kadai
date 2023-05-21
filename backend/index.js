@@ -49,9 +49,14 @@ app.post("/api/user/signup", async (req, res) => {
   // ]);
   // const result = await database.run("SELECT * FROM memos");
   // res.send(result);
-  // const found = await database.run(
-  //   "SELECT userName, COUNT(userName) FROM user GROUP BY userName, HAVING COUNT(userName) > 0"
-  // );
+  const found = await database.run(
+    `SELECT userName FROM user WHERE userName=(?)`,
+    [req.body.info.name]
+  );
+
+  /**
+   * if(found) -> there is same Id on database -> reject signup
+   */
   console.log("-----------");
   const userData = req.body;
   if (
