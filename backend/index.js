@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const database = require("./database");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -35,8 +36,7 @@ app.get("/api/user", (req, res) => {
       // }
       res.send(decoded);
     });
-  }
-  {
+  } else {
     // Return an empty response (200 OK) instead of 401 Unauthorized
     res.send();
   }
@@ -46,9 +46,23 @@ app.get("/api/user", (req, res) => {
 app.post("/api/user/signup", (req, res) => {
   console.log("-----------");
   const userData = req.body;
-  userList.push(userData);
-  console.log("back----------> " + JSON.stringify(userList));
-  res.send(userData);
+  if (
+    //same userName or email check if return;
+    userList.find(
+      (el) =>
+        el.info.name == userData.info.name ||
+        el.info.email == userData.info.email
+    ) //change to sql ->
+  ) {
+    //if already userName is in the list
+    console.log("user name or email");
+    res.send();
+  } else {
+    //no same userName
+    userList.push(userData); // change to sql ->
+    console.log("back----------> " + JSON.stringify(userList));
+    res.send(userData);
+  }
 });
 // Login Logout
 //Login
@@ -60,11 +74,13 @@ app.post("/api/user/login", async (req, res) => {
   //find user
   const foundUser = await userList.find(
     (el) => el.info.name == user.name && el.info.password == user.password
-  );
+  ); //change to sql ->
   //found
+
   console.log("foundUser login: " + JSON.stringify(foundUser));
   if (foundUser) {
-    foundUser.checked.login_check = true;
+    foundUser.checked.login_check = true; //change to sql ->
+
     const token = jwt.sign(
       {
         user: {
@@ -107,7 +123,11 @@ app.delete("/api/todolist", async (req, res) => {
   try {
     console.log("original List: " + JSON.stringify(data));
     console.log("req.id: " + req.query.id);
-
+    /**
+     * write below sql
+     * 1. find target user by userName and delete target user
+     *
+     */
     const idx = await data.list.findIndex((el) => el.id == req.query.id); //find index by element id;
 
     if (idx !== -1) {
@@ -124,15 +144,19 @@ app.delete("/api/todolist", async (req, res) => {
 //add
 app.post("/api/todolist", async (req, res) => {
   const formData = req.body;
-  await data.list.push(formData);
+  await data.list.push(formData); //change to sql -> push data by insert sql
   data.list.forEach((element) => {
     console.log("el.id: " + element.id);
   });
+  //change to sql -> get data by select sql
   res.send(data);
 });
 
 //list show
 app.get("/api/todolist", (req, res) => {
+  // database.run("SELECT * FROM content");
+
+  //get list data by select sql and put it data.list;
   if (req.cookies && req.cookies.token) {
     console.log(
       "list show app.get user : " +
@@ -146,11 +170,13 @@ app.get("/api/todolist", (req, res) => {
       //   res.sendStatus(401);
       // }
       data.user = decoded;
-      console.log("data.user: " + JSON.stringify(data.user));
+      console.log("login data.user: " + JSON.stringify(data.user));
+      //{"user":{"info":{"name":"123","email":"123"},"checked":{"login_check":true}},"iat":1684595112,"exp":1684595412,"iss":"yeojin"}
       res.send(data);
     });
   } else {
-    // Return a list
+    // Return just list
+    //change to sql -> get data list by select sql
     res.send(data.list);
   }
 });
@@ -158,7 +184,7 @@ app.get("/api/todolist", (req, res) => {
 //hide and show
 app.put("/api/todolist", async (req, res) => {
   //find object by id
-  const found = await list.find((el) => el.id == req.body.id);
+  const found = await data.list.find((el) => el.id == req.body.id);
   found.isActive = req.body.isActive;
   res.send(data);
 });
