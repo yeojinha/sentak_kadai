@@ -137,7 +137,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Sign up"
-                  @click="signUp()"
+                  @click.prevent="signUp()"
                 />
               </form>
             </li>
@@ -267,20 +267,17 @@ export default {
       //check
       const user = userData.user;
 
-      axios
-        .post("/api/user/signup", user)
-        .then((res) => {
-          console.log("singUp: " + JSON.stringify(res.data));
+      axios.post("/api/user/signup", user).then((res) => {
+        console.log("singUp: " + JSON.stringify(res.data));
+        if (!res.data) {
+          //if no res data
+          alert("The ID already exists.");
+        } else {
           userData.user = res.data;
+          console.log("last accepted check: " + userData.user.checked.accepted);
           reset(userData);
-
-          console.log(
-            "lastt accepted check: " + userData.user.checked.accepted
-          );
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+        }
+      });
     };
 
     return {
