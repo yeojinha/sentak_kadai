@@ -43,7 +43,15 @@ app.get("/api/user", (req, res) => {
 });
 
 //signup
-app.post("/api/user/signup", (req, res) => {
+app.post("/api/user/signup", async (req, res) => {
+  // await database.run(`INSERT INTO memos (content) VALUES (?)`, [
+  //   req.body.content,
+  // ]);
+  // const result = await database.run("SELECT * FROM memos");
+  // res.send(result);
+  // const found = await database.run(
+  //   "SELECT userName, COUNT(userName) FROM user GROUP BY userName, HAVING COUNT(userName) > 0"
+  // );
   console.log("-----------");
   const userData = req.body;
   if (
