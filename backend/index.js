@@ -250,4 +250,4 @@ app.listen(port, () => {
 });
 
 //app.get  show executed first, second is login method <- this is problem that second method actually create token and add it to data; however
-//fi app.get show first, that is before the cookie created, so " if (req.cookies && req.cookies.token)" <- could't find cookie in it.
+//if app.get show first, that is before the cookie created, so " if (req.cookies && req.cookies.token)" <- could't find cookie in it.

@@ -239,7 +239,6 @@ export default {
     };
     //add
     const addItem = () => {
-      ///여기서 문제 발생, state.userName아이디가 전달이 되지 않는 상태가 발생함, 그리하여 로그인이 되어도 동기화가 진행되지 않아서 db에 추가는 되나 글작성 불가 하지만 refresh하면 작동
       console.log("addItem on adding content isId-> " + state.userName);
       if (!state.userName || state.userName == "") {
         alert("Plz Login first!");

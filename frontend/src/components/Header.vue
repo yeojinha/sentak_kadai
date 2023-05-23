@@ -232,7 +232,6 @@ export default {
       });
     };
     const checked = () => {
-      //약관동의
       userData.user.checked.accepted = true; //false -> true;
     };
 
@@ -252,7 +251,6 @@ export default {
           reset(userData);
           return;
         }
-        // console.log("res data: " + JSON.stringify(res.data[0].userName)); //arr로 반환되었음
         //found user
         userData = userSet(res);
         console.log(
