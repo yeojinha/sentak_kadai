@@ -46,16 +46,6 @@
                     v-model="state.formData.content"
                   ></textarea>
                 </div>
-                <!-- <div class="form-group">
-                  <label for="password">Password</label>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    placeholder="Password"
-                    v-model="state.formData.password"
-                  />
-                </div> -->
                 <div>
                   <button
                     type="button"
@@ -218,19 +208,27 @@ export default {
 
     //delete
     const deleteItem = (id) => {
-      if (!state.userName || state.userName == "") {
-        alert("Plz Login first!");
-        return;
-      }
+      // if (!state.userName || state.userName == "") {
+      //   alert("You aren;t !");
+      //   return;
+      // }
       const targetItem = state.list.find((el) => el.id == id);
       console.log("target Item : " + JSON.stringify(targetItem));
+      console.log("state.userName: " + state.userName);
       if (state.userName !== targetItem.userName) {
         //if cnt user has no right to delete the content return;
         alert("You aren't authorized to delete this content.");
         return;
       }
+      const contentData = {
+        name: targetItem.userName,
+        id: targetItem.id,
+      };
+      console.log("contentData: " + JSON.stringify(contentData));
       axios
-        .delete(`/api/todolist/?id=${id}`)
+        .delete(`/api/todolist/delete`, {
+          data: contentData,
+        })
         .then((res) => {
           console.log("res.data by delete: " + JSON.stringify(res.data.list));
           state.list = res.data.list;
@@ -241,21 +239,21 @@ export default {
     };
     //add
     const addItem = () => {
+      console.log("addItem on adding content isId-> " + state.userName);
       if (!state.userName || state.userName == "") {
         alert("Plz Login first!");
         return;
       }
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
-      //userName put into state.formData.userName
       state.formData.userName = state.userName;
       const formData = state.formData;
       console.log("add formData-> " + JSON.stringify(formData));
       axios
-        .post("/api/todolist", formData)
+        .post("/api/todolist/add", formData)
         .then((res) => {
-          state.list = res.data.list;
-          console.log("res.data by post: " + JSON.stringify(res.data.list));
+          state.list = res.data;
+          console.log("res.data by post: " + JSON.stringify(res.data));
         })
         .catch((err) => {
           console.log(err);
@@ -274,9 +272,10 @@ export default {
     //hide and show button
 
     const hideCardBody = (id) => {
-      // 이거  d-none 부분 해결해야함
       const found = state.list.find((el) => el.id == id);
+      console.log("Before hideCardBody isActive: " + found.isActive);
       found.isActive = !found.isActive;
+      console.log("After hideCardBody isActive: " + found.isActive);
       const isActive = found.isActive;
       axios
         .put("/api/todolist", {
@@ -291,7 +290,7 @@ export default {
     };
 
     //show
-    axios.get("/api/todolist").then((res) => {
+    axios.get("/api/todolist/show").then((res) => {
       console.log(
         "front mainList.vue user token check: " + JSON.stringify(res.data)
       );

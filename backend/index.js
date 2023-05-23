@@ -24,6 +24,21 @@ const jwtKey = "abc1234567";
 // const cookieCheck = (req, res) => {
 
 // };
+// const loginSetTrue = (user) => {
+//   console.log("user.userName in loginSetTrue: " + user.userName);
+//   database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
+//     user.userName,
+//   ]);
+// };
+const findUser = async (name, password) => {
+  //using wiht async await
+  let data = await database.run(
+    `SELECT * FROM user WHERE userName = ? AND password = ?`,
+    [name, password]
+  );
+  // console.log("findUser data: " + JSON.stringify(data));
+  return data;
+};
 app.get("/api/user", (req, res) => {
   if (req.cookies && req.cookies.token) {
     console.log(
@@ -44,6 +59,16 @@ app.get("/api/user", (req, res) => {
 
 //signup
 app.post("/api/user/signup", async (req, res) => {
+  console.log("singup: " + JSON.stringify(req.body));
+  /**
+   * singup: {"info":{"password":"123","confirm_password":"123","name":"123","email":"123"},"checked":{"accepted":true,"login_check":false}}
+-----------
+back----------> [{"info":{"password":"123","confirm_password":"123","name":"123","email":"123"},"checked":{"accepted":true,"login_check":false}}]
+
+   * 
+   * 
+   */
+
   // await database.run(`INSERT INTO memos (content) VALUES (?)`, [
   //   req.body.content,
   // ]);
@@ -52,23 +77,34 @@ app.post("/api/user/signup", async (req, res) => {
   // const found = await database.run(
   //   "SELECT userName, COUNT(userName) FROM user GROUP BY userName, HAVING COUNT(userName) > 0"
   // );
+  console.log("req.body.info.name-> " + req.body.info.name);
   console.log("-----------");
-  const userData = req.body;
-  if (
-    //same userName or email check if return;
-    userList.find(
-      (el) =>
-        el.info.name == userData.info.name ||
-        el.info.email == userData.info.email
-    ) //change to sql ->
-  ) {
+  let userData = await findUser(req.body.info.name, req.body.info.password);
+
+  // console.log("userData " + JSON.stringify(userData));
+  console.log(
+    "req.body.info.name, req.body.info.email, req.body.info.password: " +
+      req.body.info.name,
+    req.body.info.email,
+    req.body.info.password
+  );
+  if (userData.length > 0) {
     //if already userName is in the list
     console.log("user name or email");
     res.send();
   } else {
     //no same userName
-    userList.push(userData); // change to sql ->
-    console.log("back----------> " + JSON.stringify(userList));
+    // userList.push(userData); // change to sql ->
+    await database.run(
+      `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
+      [req.body.info.name, req.body.info.email, req.body.info.password]
+    );
+    userData = await findUser(req.body.info.name, req.body.info.password);
+    console.log("sign up ID check from db: " + userData);
+    console.log(
+      "back----------> " +
+        JSON.stringify(await database.run("SELECT * FROM user;"))
+    );
     res.send(userData);
   }
 });
@@ -76,31 +112,32 @@ app.post("/api/user/signup", async (req, res) => {
 //Login
 app.post("/api/user/login", async (req, res) => {
   const user = req.body;
+  console.log("user: " + JSON.stringify(user));
   console.log("back username: " + user.name);
   console.log("back password: " + user.password);
+  let foundUser = null;
 
-  //find user
-  const foundUser = await userList.find(
-    (el) => el.info.name == user.name && el.info.password == user.password
-  ); //change to sql ->
-  //found
+  foundUser = await findUser(user.name, user.password);
 
-  console.log("foundUser login: " + JSON.stringify(foundUser));
-  if (foundUser) {
-    foundUser.checked.login_check = true; //change to sql ->
-
+  console.log("foundUser login: " + JSON.stringify(foundUser)); //data가 미검출되고 있음 20230523 점심 12시
+  if (foundUser.length > 0) {
+    foundUser[0].login_check = true; //change to sql ->
+    // console.log("foundUser[0].userName: " + foundUser[0].userName);
+    await database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
+      foundUser[0].userName,
+    ]);
     const token = jwt.sign(
       {
         user: {
           info: {
             // password: foundUser.info.password,
             // confirm_password: foundUser.info.confirm_password,
-            name: foundUser.info.name,
-            email: foundUser.info.email,
+            name: foundUser[0].userName,
+            email: foundUser[0].email,
           },
           checked: {
             // accepted: foundUser.checked.accepted,
-            login_check: true,
+            login_check: foundUser[0].login_check,
           },
         },
       },
@@ -112,79 +149,90 @@ app.post("/api/user/login", async (req, res) => {
     );
 
     res.cookie("token", token); //set cookie browser
-    res.send(foundUser); //send foundUser including cookie and jwt
+    //login true
+    // await loginSetTrue(foundUser);
+    res.send(foundUser[0]); //send foundUser including cookie and jwt
   } else {
     res.send();
   }
 });
 //Logout
-app.delete("/api/user/logout", (req, res) => {
+app.delete("/api/user/logout", async (req, res) => {
+  console.log("logout cookie check: " + JSON.stringify(req.body));
   if (req.cookies && req.cookies.token) {
     //if user cookie found
+    await database.run(`UPDATE user SET login_check='false' WHERE userName=?`, [
+      req.body.name,
+    ]);
     res.clearCookie("token"); //delete token cookie
   }
   res.sendStatus(200);
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
 //delete
-app.delete("/api/todolist", async (req, res) => {
+app.delete("/api/todolist/delete", async (req, res) => {
   try {
-    console.log("original List: " + JSON.stringify(data));
-    console.log("req.id: " + req.query.id);
+    console.log("req.id: " + JSON.stringify(req.body));
     /**
      * write below sql
      * 1. find target user by userName and delete target user
      *
      */
-    const idx = await data.list.findIndex((el) => el.id == req.query.id); //find index by element id;
+    const targetContentId = req.body.id;
 
-    if (idx !== -1) {
-      //if no element idx is -1 else idx
-      data.list.splice(idx, 1); //delete from idx, one object
-    }
-    console.log("deleted List: " + JSON.stringify(data));
-    res.send(data);
+    await database.run(`DELETE FROM content WHERE id=?`, [targetContentId]);
+    // data.list = await database.run("SELECT * FROM content");
+    // const idx = await data.list.findIndex((el) => el.id == req.query.id); //find index by element id;
+
+    // if (idx !== -1) {
+    //   //if no element idx is -1 else idx
+    //   data.list.splice(idx, 1); //delete from idx, one object
+    // }
+    console.log("deleted List: " + JSON.stringify(data.list));
+    res.send();
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
 //add
-app.post("/api/todolist", async (req, res) => {
+app.post("/api/todolist/add", async (req, res) => {
   const formData = req.body;
-  await data.list.push(formData); //change to sql -> push data by insert sql
-  data.list.forEach((element) => {
-    console.log("el.id: " + element.id);
-  });
+  console.log("form data on add post: " + JSON.stringify(formData));
+  await database.run(
+    `INSERT INTO content(id, title, content, createdAt, userName) VALUES(?,?,?,?,?)`,
+    [
+      formData.id,
+      formData.title,
+      formData.content,
+      formData.createdAt,
+      formData.userName,
+    ]
+  );
+  // await data.list.push(formData); //change to sql -> push data by insert sql
+  const list = await database.run(`SELECT * FROM content`);
+  console.log("add list :" + list);
+
   //change to sql -> get data by select sql
-  res.send(data);
+  res.send(list);
 });
 
 //list show
-app.get("/api/todolist", (req, res) => {
-  // database.run("SELECT * FROM content");
-
+app.get("/api/todolist/show", async (req, res) => {
+  data.list = await database.run("SELECT * FROM content");
+  console.log("cookies: " + JSON.stringify(req.cookies));
   //get list data by select sql and put it data.list;
   if (req.cookies && req.cookies.token) {
-    console.log(
-      "list show app.get user : " +
-        req.cookies.token +
-        "\ncookie: " +
-        req.cookies
-    );
     jwt.verify(req.cookies.token, jwtKey, (err, decoded) => {
-      // if (err) {
-      //   console.log("get cookie err 발생함: err " + err);
-      //   res.sendStatus(401);
-      // }
+      if (err) {
+        console.l;
+      }
       data.user = decoded;
       console.log("login data.user: " + JSON.stringify(data.user));
       //{"user":{"info":{"name":"123","email":"123"},"checked":{"login_check":true}},"iat":1684595112,"exp":1684595412,"iss":"yeojin"}
       res.send(data);
     });
   } else {
-    // Return just list
-    //change to sql -> get data list by select sql
     res.send(data.list);
   }
 });
@@ -200,3 +248,6 @@ app.put("/api/todolist", async (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
 });
+
+//app.get  show executed first, second is login method <- this is problem that second method actually create token and add it to data; however
+//if app.get show first, that is before the cookie created, so " if (req.cookies && req.cookies.token)" <- could't find cookie in it.

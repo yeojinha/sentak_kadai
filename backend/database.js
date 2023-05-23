@@ -16,6 +16,7 @@ module.exports = {
             .query(query, params)
             .then((rows) => {
               resolve(rows);
+
               conn.end(); // (필수) connection 종료
             })
             .catch((err) => {

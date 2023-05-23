@@ -57,7 +57,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Login"
-                  @click="login()"
+                  @click.prevent="login()"
                 />
                 <div class="form-footer">
                   <a href="#">Forgot Your password?</a>
@@ -67,6 +67,7 @@
           </ul>
         </li>
         <li v-else>
+          <h5>{{ userData.user.info.name }}</h5>
           <button class="btn btn-primary btn-block" @click="logout()">
             Logout
           </button>
@@ -137,7 +138,7 @@
                   type="submit"
                   class="btn btn-primary btn-block"
                   value="Sign up"
-                  @click.prevent="signUp()"
+                  @click="signUp()"
                 />
               </form>
             </li>
@@ -152,9 +153,8 @@ import axios from "axios";
 import { reactive } from "vue";
 export default {
   setup() {
-    const userData = reactive({
-      userList: [],
-
+    let userData = reactive({
+      // userList: [],
       user: {
         info: {
           password: "",
@@ -168,6 +168,17 @@ export default {
         },
       },
     });
+    const userSet = (res) => {
+      // let test = res.data[0];
+      // console.log("test: " + JSON.stringify(test));
+      console.log("res.data.login_check: " + res.data.login_check);
+      userData.user.info.name = res.data.userName;
+      userData.user.info.password = res.data.password;
+      userData.user.info.email = res.data.email;
+      userData.user.checked.accepted = res.data.accepted;
+      userData.user.checked.login_check = res.data.login_check;
+      return userData;
+    };
     /////////////////////////reset user data //////////////////////////////
     const reset = (userData) => {
       userData.user.checked.accepted = false; //
@@ -208,14 +219,19 @@ export default {
 
     //logout
     const logout = () => {
-      axios.delete("/api/user/logout").then(() => {
+      const logoutUser = {
+        name: userData.user.info.name,
+        password: userData.user.info.password,
+      };
+      console.log("logout check: " + JSON.stringify(logoutUser));
+      axios.delete("/api/user/logout", { data: logoutUser }).then((res) => {
         empty();
         printCurrentUser();
-        window.location.reload(); //refresh cuz button doesn't refresh itself
+
+        // window.location.reload(); //refresh cuz button doesn't refresh itself
       });
     };
     const checked = () => {
-      //약관동의
       userData.user.checked.accepted = true; //false -> true;
     };
 
@@ -227,7 +243,7 @@ export default {
         password: userData.user.info.password,
       };
       console.log("login user: " + JSON.stringify(loginUser));
-
+      //front side check above
       axios.post("/api/user/login", loginUser).then((res) => {
         if (res.data === undefined || res.data === "") {
           // if undefined or no user found checking
@@ -235,11 +251,13 @@ export default {
           reset(userData);
           return;
         }
-
         //found user
-        userData.user = res.data;
-        // userData.user.checked.login_check = true; // switching login display to logout display
-        console.log("login front check: " + JSON.stringify(userData.user));
+        userData = userSet(res);
+        console.log(
+          "userData user in userSet login: " +
+            JSON.stringify(userData.user.checked.login_check)
+        );
+
         window.location.reload();
       });
     };
@@ -267,13 +285,14 @@ export default {
       //check
       const user = userData.user;
 
-      axios.post("/api/user/signup", user).then((res) => {
+      axios.post("/api/user/signup", user).then(async (res) => {
         console.log("singUp: " + JSON.stringify(res.data));
+        //singUp: [{"userName":"yaya","email":"yaya","password":"yaya","login_check":"false","accepted":"true"}]
         if (!res.data) {
           //if no res data
           alert("The ID already exists.");
         } else {
-          userData.user = res.data;
+          userData = await userSet(res);
           console.log("last accepted check: " + userData.user.checked.accepted);
           reset(userData);
         }
@@ -289,6 +308,7 @@ export default {
       logout,
       empty,
       printCurrentUser,
+      userSet,
     };
   },
 };
