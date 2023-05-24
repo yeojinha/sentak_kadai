@@ -47,12 +47,21 @@
                   ></textarea>
                 </div>
                 <div>
-                  <button
+                  <input
+                    type="number"
+                    id="typeNumber"
+                    class="form-control"
+                    placeholder="How many people do you want to join in your event?"
+                    min="1"
+                    v-model="state.formData.limit"
+                  />
+                  <label class="form-label" for="typeNumber"></label
+                  ><button
                     type="button"
                     class="btn btn-primary"
                     @click="addItem()"
                   >
-                    Add
+                    POST
                   </button>
                 </div>
               </form>
@@ -94,13 +103,32 @@
                           class="d-flex flex-row justify-content-end mb-1"
                         >
                           <button
+                            class="btn btn-link"
+                            data-toggle="collapse"
+                            :data-target="'#collapseOne-' + item.id"
+                            aria-expanded="false"
+                            :aria-controls="'collapseOne-' + item.id"
+                            @click="hideCardBody(item.id)"
+                          >
+                            <h4>{{ item.title }}</h4>
+                          </button>
+                          <button
+                            class="button-11"
+                            role="button"
+                            data-mdb-toggle="tooltip"
+                            title="join todo"
+                            @click="join(item.id)"
+                          >
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button
                             class="button-11"
                             role="button"
                             data-mdb-toggle="tooltip"
                             title="Edit todo"
                             @click="editItem(item.id)"
                           >
-                            <i class="fas fa-pencil-alt me-3"></i>
+                            <i class="fas fa-pencil-alt"></i>
                           </button>
                           <button
                             class="button-11"
@@ -122,20 +150,16 @@
                             <p class="small mb-0">
                               <i class="fas fa-info-circle me-2"></i
                               >{{ item.createdAt }}
+                              <i class="fas fa-info-circle me-2"></i>
+                              <span v-if="item.participants === ''">{{
+                                0
+                              }}</span>
+                              <span v-else>{{ item.participants }}</span> /
+                              {{ item.limit }}
                             </p>
                           </a>
                         </section>
                       </li>
-                      <button
-                        class="btn btn-link"
-                        data-toggle="collapse"
-                        :data-target="'#collapseOne-' + item.id"
-                        aria-expanded="false"
-                        :aria-controls="'collapseOne-' + item.id"
-                        @click="hideCardBody(item.id)"
-                      >
-                        <h3>{{ item.title }}</h3>
-                      </button>
                     </h5>
                   </section>
 
@@ -172,10 +196,14 @@ export default {
     const cardBody = null;
     const state = reactive({
       //
+      joinEvent: [], //cookie 에서 user data 뽑고, participants table에서 그유저가 참여중인 event 목록 대입 -> id있으면 join버튼 색깔 or 변화주기
+      confirm: "",
+      targetItem: "",
       selected_category: "",
       selected_date: "",
       list: [],
       userName: "",
+      // tempLimit: 0,
       //
       formData: {
         id: "",
@@ -183,6 +211,8 @@ export default {
         content: "",
         createdAt: "",
         userName: "",
+        participants: "",
+        limit: "",
         isActive: true,
       },
     });
@@ -205,25 +235,78 @@ export default {
       }
       console.log("edit -> state.item.id : " + id);
     };
+    //-----------------------------join_cancel---------------------
 
-    //delete
-    const deleteItem = async (id) => {
-      const targetItem = await state.list.find((el) => el.id == id);
-      console.log("target Item : " + JSON.stringify(targetItem));
-      console.log("state.userName: " + state.userName);
+    //-----------------------------join------------------------------
+    const join = async (id) => {
+      //inside this method,
+      // join_cancel method -> if click this give flag meaning joined,
+      //click again false, meaning cancel joining
+      // and by checking boolean true and false
+      // execute axios.put or axios.delete(update)
+      //
+      state.targetItem = await state.list.find((el) => el.id == id);
+      console.log(
+        "join target Item : " + JSON.stringify(state.targetItem.participants)
+      );
+      console.log("join state.userName: " + state.userName);
+
+      let tempNum = 0;
+
       if (state.userName === "") {
         alert("plz login first");
         return;
-      } else if (state.userName !== targetItem.userName) {
+      }
+      if (state.targetItem.participants !== "") {
+        tempNum = parseInt(state.targetItem.participants);
+      }
+
+      if (parseInt(state.targetItem.limit) == tempNum) {
+        alert("Room is full");
+        return;
+      }
+      tempNum++;
+      console.log("tempNum: " + tempNum);
+      state.confirm = window.confirm("Do you really want to join this event?");
+      if (state.confirm) {
+        const joinUserData = {
+          name: state.userName,
+          num: tempNum.toString(),
+          id: state.targetItem.id,
+        };
+        console.log("contentData: " + JSON.stringify(joinUserData));
+        axios
+          .put("/api/todolist/join", {
+            data: joinUserData,
+          })
+          .then((res) => {
+            console.log("res.data by join: " + JSON.stringify(res.data));
+            state.list = res.data;
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      } else {
+        return;
+      }
+    };
+    //--------------------------join-----------------------------
+    //delete
+    const deleteItem = async (id) => {
+      state.targetItem = await state.list.find((el) => el.id == id);
+      if (state.userName === "") {
+        alert("plz login first");
+        return;
+      } else if (state.userName !== state.targetItem.userName) {
         //if cnt user has no right to delete the content return;
         alert("You aren't authorized to delete this content.");
         return;
       }
-      const confirm = window.confirm("Do you really want to delete?");
-      if (confirm) {
+      state.confirm = window.confirm("Do you really want to delete?");
+      if (state.confirm) {
         const contentData = {
-          name: targetItem.userName,
-          id: targetItem.id,
+          name: state.targetItem.userName,
+          id: state.targetItem.id,
         };
         console.log("contentData: " + JSON.stringify(contentData));
         axios
@@ -251,6 +334,7 @@ export default {
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
       state.formData.userName = state.userName;
+      // state.formData.limit = state.tempLimit.toString();
       const formData = state.formData;
       console.log("add formData-> " + JSON.stringify(formData));
       axios
@@ -269,6 +353,8 @@ export default {
           state.formData.content = "";
           state.formData.createdAt = "";
           state.formData.userName = "";
+          state.formData.participants = "";
+          state.formData.limit = "";
           // state.userName = "";
           //clear input
         });
@@ -297,9 +383,9 @@ export default {
     // };
 
     const hideCardBody = async (id) => {
-      alert("clicked id: " + id);
+      // alert("clicked id: " + id);
       const found = await state.list.find((el) => el.id == id);
-      alert("Before hideCardBody isActive: " + found.isActive);
+      // alert("Before hideCardBody isActive: " + found.isActive);
       found.isActive = !found.isActive;
       // console.log("hideCardBody found data: " + JSON.stringify(found));
       state.list.forEach((el) =>
@@ -334,7 +420,7 @@ export default {
       console.log("mainList.vue: " + JSON.stringify(state.list));
     });
 
-    return { state, addItem, deleteItem, editItem, hideCardBody };
+    return { state, addItem, deleteItem, editItem, hideCardBody, join };
   },
 };
 </script>

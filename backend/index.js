@@ -11,6 +11,10 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 const port = 3000;
+const participants = {
+  userName: "",
+  email: "",
+};
 const user = "";
 const data = {
   list: [],
@@ -45,10 +49,6 @@ app.get("/api/user", (req, res) => {
       "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
     );
     jwt.verify(req.cookies.token, jwtKey, (err, decoded) => {
-      // if (err) {
-      //   console.log("get cookie err 발생함: err " + err);
-      //   res.sendStatus(401);
-      // }
       res.send(decoded);
     });
   } else {
@@ -119,7 +119,7 @@ app.post("/api/user/login", async (req, res) => {
 
   foundUser = await findUser(user.name, user.password);
 
-  console.log("foundUser login: " + JSON.stringify(foundUser)); //data가 미검출되고 있음 20230523 점심 12시
+  console.log("foundUser login: " + JSON.stringify(foundUser));
   if (foundUser.length > 0) {
     foundUser[0].login_check = true; //change to sql ->
     // console.log("foundUser[0].userName: " + foundUser[0].userName);
@@ -170,6 +170,40 @@ app.delete("/api/user/logout", async (req, res) => {
   res.sendStatus(200);
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
+
+/**
+ * join부분에서
+ * 1. 같은 방에 이미 join했으면 못하게 해야함
+ * 2.
+ *
+ *
+ */
+//join
+app.put(`/api/todolist/join`, async (req, res) => {
+  console.log("join req.body: " + JSON.stringify(req.body.data)); //receiving name, id
+  let list = await database.run("SELECT * FROM content");
+  const already_join = await database.run(
+    "SELECT * FROM participants_events WHERE id = ? AND userName =?",
+    [req.body.data.id, req.body.data.name]
+  );
+  if (already_join.length >= 0) console.log("이미 존재");
+  if (already_join.length <= 0) {
+    console.log("req.body.data.name: " + req.body.data.name);
+    await database.run(`UPDATE content SET participants = ? WHERE id = ?`, [
+      //현재 참여 인원 수정
+      req.body.data.num,
+      req.body.data.id,
+    ]);
+
+    await database.run(
+      `INSERT INTO participants_events (userName, id) VALUES(?,?)`,
+      [req.body.data.name, req.body.data.id]
+    );
+  }
+  list = await database.run("SELECT * FROM content");
+  console.log("after join: " + JSON.stringify(list));
+  res.send(list);
+});
 //delete
 app.delete("/api/todolist/delete", async (req, res) => {
   try {
@@ -179,9 +213,13 @@ app.delete("/api/todolist/delete", async (req, res) => {
      * 1. find target user by userName and delete target user
      *
      */
-    const targetContentId = req.body.id;
+    const targetContent = req.body;
 
-    await database.run(`DELETE FROM content WHERE id=?`, [targetContentId]);
+    await database.run(`DELETE FROM content WHERE id=?`, [targetContent.id]);
+    await database.run(
+      `DELETE FROM participants_events WHERE id=? AND userName=?`,
+      [targetContent.id, targetContent.name]
+    );
     // data.list = await database.run("SELECT * FROM content");
     // const idx = await data.list.findIndex((el) => el.id == req.query.id); //find index by element id;
 
@@ -192,7 +230,7 @@ app.delete("/api/todolist/delete", async (req, res) => {
     console.log("deleted List: " + JSON.stringify(data.list));
     data.list = await database.run("SELECT * FROM content");
     console.log(
-      "data.list after delete on severside: " + JSON.stringify(data.list)
+      "data.list after delete on sever_side: " + JSON.stringify(data.list)
     );
     res.send(data.list);
   } catch (err) {
@@ -205,17 +243,19 @@ app.post("/api/todolist/add", async (req, res) => {
   const formData = req.body;
   console.log("form data on add post: " + JSON.stringify(formData));
   await database.run(
-    `INSERT INTO content(id, title, content, createdAt, userName) VALUES(?,?,?,?,?)`,
+    `INSERT INTO content(id, title, content, createdAt, userName,participants, \`limit\`) VALUES(?,?,?,?,?,?,?)`,
     [
       formData.id,
       formData.title,
       formData.content,
       formData.createdAt,
       formData.userName,
+      formData.participants,
+      formData.limit,
     ]
   );
   // await data.list.push(formData); //change to sql -> push data by insert sql
-  const list = await database.run(`SELECT * FROM content`);
+  const list = await database.run(`SELECT * FROM content`); //array returns
   console.log("add list :" + list);
 
   //change to sql -> get data by select sql
@@ -249,6 +289,7 @@ app.put("/api/todolist", async (req, res) => {
   found.isActive = req.body.isActive;
   res.send(data);
 });
+//----------------------------------------------------------participants----------------------------------------------------------------------
 
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
