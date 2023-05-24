@@ -166,6 +166,7 @@ app.delete("/api/user/logout", async (req, res) => {
     ]);
     res.clearCookie("token"); //delete token cookie
   }
+  data.user = null; //when logout giving this null
   res.sendStatus(200);
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
@@ -189,7 +190,11 @@ app.delete("/api/todolist/delete", async (req, res) => {
     //   data.list.splice(idx, 1); //delete from idx, one object
     // }
     console.log("deleted List: " + JSON.stringify(data.list));
-    res.send();
+    data.list = await database.run("SELECT * FROM content");
+    console.log(
+      "data.list after delete on severside: " + JSON.stringify(data.list)
+    );
+    res.send(data.list);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
@@ -225,7 +230,7 @@ app.get("/api/todolist/show", async (req, res) => {
   if (req.cookies && req.cookies.token) {
     jwt.verify(req.cookies.token, jwtKey, (err, decoded) => {
       if (err) {
-        console.l;
+        console.log("list show " + err);
       }
       data.user = decoded;
       console.log("login data.user: " + JSON.stringify(data.user));
@@ -233,7 +238,7 @@ app.get("/api/todolist/show", async (req, res) => {
       res.send(data);
     });
   } else {
-    res.send(data.list);
+    res.send(data);
   }
 });
 

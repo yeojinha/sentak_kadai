@@ -85,7 +85,7 @@
               <!--  ul Challenge List -->
               <div>
                 <div class="card" v-for="item in state.list" :key="item.id">
-                  <section class="card-header" id="headingOne">
+                  <section class="card-header" :id="'headingOne-' + item.id">
                     <h5 class="mb-0">
                       <li
                         class="list-group-item ps-3 pe-0 py-1 rounded-0 border-0 bg-transparent"
@@ -129,9 +129,9 @@
                       <button
                         class="btn btn-link"
                         data-toggle="collapse"
-                        data-target="#collapseOne"
+                        :data-target="'#collapseOne-' + item.id"
                         aria-expanded="false"
-                        aria-controls="collapseOne"
+                        :aria-controls="'collapseOne-' + item.id"
                         @click="hideCardBody(item.id)"
                       >
                         <h3>{{ item.title }}</h3>
@@ -140,15 +140,16 @@
                   </section>
 
                   <div
-                    id="collapseOne"
+                    :id="'collapseOne-' + item.id"
                     class="collapse show"
-                    aria-labelledby="headingOne"
-                    data-parent="#accordion"
+                    aria-labelledby="'headingOne-'+item.id"
                   >
                     <!-- <div class="card-body d-none"> -->
                     <div
-                      class="'card-body' + item.id"
-                      :class="{ 'd-none': item.isActive }"
+                      :class="[
+                        'card-body-' + item.id,
+                        { 'd-none': item.isActive },
+                      ]"
                     >
                       {{ item.content }}
                     </div>
@@ -174,7 +175,6 @@ export default {
       selected_category: "",
       selected_date: "",
       list: [],
-      isNone: true,
       userName: "",
       //
       formData: {
@@ -207,15 +207,14 @@ export default {
     };
 
     //delete
-    const deleteItem = (id) => {
-      // if (!state.userName || state.userName == "") {
-      //   alert("You aren;t !");
-      //   return;
-      // }
-      const targetItem = state.list.find((el) => el.id == id);
+    const deleteItem = async (id) => {
+      const targetItem = await state.list.find((el) => el.id == id);
       console.log("target Item : " + JSON.stringify(targetItem));
       console.log("state.userName: " + state.userName);
-      if (state.userName !== targetItem.userName) {
+      if (state.userName === "") {
+        alert("plz login first");
+        return;
+      } else if (state.userName !== targetItem.userName) {
         //if cnt user has no right to delete the content return;
         alert("You aren't authorized to delete this content.");
         return;
@@ -230,8 +229,8 @@ export default {
           data: contentData,
         })
         .then((res) => {
-          console.log("res.data by delete: " + JSON.stringify(res.data.list));
-          state.list = res.data.list;
+          console.log("res.data by delete: " + JSON.stringify(res.data));
+          state.list = res.data;
         })
         .catch((err) => {
           console.log(err);
@@ -265,44 +264,62 @@ export default {
           state.formData.content = "";
           state.formData.createdAt = "";
           state.formData.userName = "";
-          state.userName = "";
+          // state.userName = "";
           //clear input
         });
     };
     //hide and show button
 
-    const hideCardBody = (id) => {
-      const found = state.list.find((el) => el.id == id);
-      console.log("Before hideCardBody isActive: " + found.isActive);
-      found.isActive = !found.isActive;
-      console.log("After hideCardBody isActive: " + found.isActive);
-      const isActive = found.isActive;
-      axios
-        .put("/api/todolist", {
-          isActive,
-          id,
-        })
-        .then((res) => {
-          state.list = res.data.list;
+    // const hideCardBody = (id) => {
+    //   const found = state.list.find((el) => el.id == id);
+    //   // console.log("Before hideCardBody isActive: " + found.isActive);
+    //   alert("Before hideCardBody isActive: " + found.isActive);
+    //   found.isActive = !found.isActive;
+    //   console.log("hideCardBody found data: " + JSON.stringify(found));
 
-          console.log("res.data by get: " + JSON.stringify(res.data.list));
-        });
+    //   const isActive = found.isActive;
+    //   alert("After hideCardBody isActive: " + isActive);
+    //   axios
+    //     .put("/api/todolist", {
+    //       isActive,
+    //       id,
+    //     })
+    //     .then((res) => {
+    //       state.list = res.data.list;
+
+    //       console.log("res.data by get: " + JSON.stringify(res.data.list));
+    //     });
+    // };
+
+    const hideCardBody = async (id) => {
+      alert("clicked id: " + id);
+      const found = await state.list.find((el) => el.id == id);
+      alert("Before hideCardBody isActive: " + found.isActive);
+      found.isActive = !found.isActive;
+      // console.log("hideCardBody found data: " + JSON.stringify(found));
+      state.list.forEach((el) =>
+        console.log("id: " + el.id + "     isActive: " + el.isActive)
+      );
     };
 
     //show
     axios.get("/api/todolist/show").then((res) => {
       console.log(
-        "front mainList.vue user token check: " + JSON.stringify(res.data)
+        "front mainList.vue user token check: " + JSON.stringify(res.data.user)
       );
-      if (res.data.user) {
+      if (res.data.user != null || res.data.user != undefined) {
+        //null, there is no login user
         console.log(
           "front if(res.data.user): " + JSON.stringify(res.data.user)
+        );
+        console.log(
+          "res.data.user.user.info.name: " + res.data.user.user.info.name
         );
         state.list = res.data.list;
         state.userName = res.data.user.user.info.name;
       } else {
         console.log("front if(!res.data.user)" + JSON.stringify(res.data));
-        state.list = res.data;
+        state.list = res.data.list;
       }
 
       console.log("mainList.vue: " + JSON.stringify(state.list));
