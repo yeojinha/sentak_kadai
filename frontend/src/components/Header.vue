@@ -228,7 +228,7 @@ export default {
         empty();
         printCurrentUser();
 
-        // window.location.reload(); //refresh cuz button doesn't refresh itself
+        window.location.reload(); //refresh cuz button doesn't refresh itself
       });
     };
     const checked = () => {
