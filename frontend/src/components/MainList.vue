@@ -219,22 +219,27 @@ export default {
         alert("You aren't authorized to delete this content.");
         return;
       }
-      const contentData = {
-        name: targetItem.userName,
-        id: targetItem.id,
-      };
-      console.log("contentData: " + JSON.stringify(contentData));
-      axios
-        .delete(`/api/todolist/delete`, {
-          data: contentData,
-        })
-        .then((res) => {
-          console.log("res.data by delete: " + JSON.stringify(res.data));
-          state.list = res.data;
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      const confirm = window.confirm("Do you really want to delete?");
+      if (confirm) {
+        const contentData = {
+          name: targetItem.userName,
+          id: targetItem.id,
+        };
+        console.log("contentData: " + JSON.stringify(contentData));
+        axios
+          .delete(`/api/todolist/delete`, {
+            data: contentData,
+          })
+          .then((res) => {
+            console.log("res.data by delete: " + JSON.stringify(res.data));
+            state.list = res.data;
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      } else {
+        return;
+      }
     };
     //add
     const addItem = () => {
