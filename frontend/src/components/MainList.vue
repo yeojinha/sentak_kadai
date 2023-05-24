@@ -312,8 +312,12 @@ export default {
       console.log(
         "front mainList.vue user token check: " + JSON.stringify(res.data.user)
       );
-      if (res.data.user != null || res.data.user != undefined) {
-        //null, there is no login user
+      if (
+        JSON.stringify(res.data.user) !== "{}" &&
+        res.data.user != null &&
+        res.data.user != undefined
+      ) {
+        //null, there is no login user]
         console.log(
           "front if(res.data.user): " + JSON.stringify(res.data.user)
         );
