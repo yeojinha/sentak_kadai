@@ -166,6 +166,7 @@ export default {
           accepted: false,
           login_check: false,
         },
+        foundEventsId: [],
       },
     });
     const userSet = (res) => {
@@ -177,6 +178,7 @@ export default {
       userData.user.info.email = res.data.email;
       userData.user.checked.accepted = res.data.accepted;
       userData.user.checked.login_check = res.data.login_check;
+
       return userData;
     };
     /////////////////////////reset user data //////////////////////////////
@@ -197,6 +199,7 @@ export default {
       for (let i in userData.user.checked) {
         userData.user.checked[i] = false;
       }
+      userData.user.foundEventsId = [];
     };
     const printCurrentUser = () => {
       console.log("current user check: " + JSON.stringify(userData.user));
@@ -219,6 +222,10 @@ export default {
 
     //logout
     const logout = () => {
+      alert(
+        "userData.user foundEventsId:" +
+          JSON.stringify(userData.user.foundEventsId)
+      );
       const logoutUser = {
         name: userData.user.info.name,
         password: userData.user.info.password,
@@ -228,7 +235,7 @@ export default {
         empty();
         printCurrentUser();
 
-        window.location.reload(); //refresh cuz button doesn't refresh itself
+        // window.location.reload(); //refresh cuz button doesn't refresh itself
       });
     };
     const checked = () => {
@@ -245,12 +252,16 @@ export default {
       console.log("login user: " + JSON.stringify(loginUser));
       //front side check above
       axios.post("/api/user/login", loginUser).then((res) => {
+        console.log(
+          "login  foundJoinEventsId check: " + JSON.stringify(res.data)
+        );
         if (res.data === undefined || res.data === "") {
           // if undefined or no user found checking
           alert("id or password error.");
           reset(userData);
           return;
         }
+        // alert("res on login: "+JSON.stringify(res.token))
         //found user
         userData = userSet(res);
         console.log(
