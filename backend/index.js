@@ -82,8 +82,8 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       [req.body.name, req.body.id]
     ); //데이터 다대다 테이블에 추가
     await database.run(
-      `INSERT INTO participants_events_history (userName, id) VALUES(?,?)`,
-      [req.body.name, req.body.id]
+      `INSERT IGNORE INTO participants_events_history (userName, id) VALUES(?,?)`,
+      [req.body.name, req.body.id] //ignore the data is already on the table;
     );
   }
   await database.run(`UPDATE contents SET participants=? WHERE id=?`, [
@@ -96,7 +96,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       `SELECT id FROM participants_events WHERE userName = ?`,
       [req.body.name]
     ),
-    eventsList: await database.run(`SELECT * FROM contents WHERE userName `),
+    eventsList: await database.run(`SELECT * FROM contents WHERE userName`),
   };
 
   console.log(
@@ -106,7 +106,6 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   console.log(
     "-----------------------------------------------------------------------"
   );
-
   console.log(
     "-----------------------------------------------------------------------"
   );
@@ -235,11 +234,6 @@ app.post("/api/user/login", async (req, res) => {
             // accepted: foundUser.checked.accepted,
             login_check: foundUser[0].login_check,
           },
-
-          foundJoinEventsId: await database.run(
-            "SELECT id FROM participants_events WHERE userName = ?",
-            [foundUser[0].userName]
-          ),
         },
       },
       jwtKey,
@@ -273,13 +267,6 @@ app.delete("/api/user/logout", async (req, res) => {
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
 
-/**
- * join부분에서
- * 1. 같은 방에 이미 join했으면 못하게 해야함
- * 2.
- *
- *
- */
 //join
 app.put(`/api/todolist/join`, async (req, res) => {
   console.log("join req.body: " + JSON.stringify(req.body.data)); //receiving name, id
@@ -299,10 +286,6 @@ app.put(`/api/todolist/join`, async (req, res) => {
 
     await database.run(
       `INSERT INTO participants_events (userName, id) VALUES(?,?)`,
-      [req.body.data.name, req.body.data.id]
-    );
-    await database.run(
-      `INSERT INTO participants_events_history (userName, id) VALUES(?,?)`,
       [req.body.data.name, req.body.data.id]
     );
   }
@@ -370,23 +353,46 @@ app.post("/api/todolist/add", async (req, res) => {
 });
 
 //list show
-app.get("/api/todolist/show", async (req, res) => {
-  data.list = await database.run("SELECT * FROM contents");
 
+app.get("/api/todolist/getUser", async (req, res) => {
+  if (req.cookies && req.cookies.token) {
+    jwt.verify(req.cookies.token, jwtKey, async (err, decoded) => {
+      if (err) {
+        console.log("list show " + err);
+      }
+      const user = decoded;
+      res.send(user);
+    });
+  } else {
+    res.send();
+  }
+});
+
+app.get("/api/todolist/show_special", async (req, res) => {
+  console.log("show_special: " + JSON.stringify(req.query.userName));
+
+  data.list = await database.run("SELECT * FROM contents");
+  data.userJoinEventsId = await database.run(
+    `SELECT id FROM participants_events WHERE userName =?`,
+    [req.query.userName]
+  );
   //get list data by select sql and put it data.list;
   if (req.cookies && req.cookies.token) {
-    jwt.verify(req.cookies.token, jwtKey, (err, decoded) => {
+    jwt.verify(req.cookies.token, jwtKey, async (err, decoded) => {
       if (err) {
         console.log("list show " + err);
       }
       data.user = decoded;
-      console.log("cookies data : " + JSON.stringify(data));
-      //{"user":{"info":{"name":"123","email":"123"},"checked":{"login_check":true}},"iat":1684595112,"exp":1684595412,"iss":"yeojin"}
+      //if user true, finds joined events
+      console.log(`data: ${JSON.stringify(data.userJoinEventsId)}`);
       res.send(data);
     });
-  } else {
-    res.send(data);
   }
+});
+
+app.get("/api/todolist/show", async (req, res) => {
+  data.list = await database.run("SELECT * FROM contents");
+  res.send(data);
 });
 
 //hide and show
