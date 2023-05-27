@@ -48,12 +48,13 @@
                 </div>
                 <div>
                   <input
-                    type="number"
+                    type="text"
                     id="typeNumber"
                     class="form-control"
                     placeholder="How many people do you want to join in your event?"
                     min="1"
                     v-model="state.formData.limit"
+                    @input="handleInput"
                   />
                   <label class="form-label" for="typeNumber"></label
                   ><button
@@ -203,8 +204,10 @@
 </template>
 
 <script>
-import { reactive } from "vue";
+import { reactive, resolveDirective } from "vue";
+// import onlyInt from "vue-input-only-number";
 import axios from "axios";
+import { assertExpressionStatement } from "@babel/types";
 export default {
   setup() {
     const cardBody = null;
@@ -216,6 +219,7 @@ export default {
       selected_category: "",
       selected_date: "",
       list: [],
+      str: [],
       userName: "",
       // tempLimit: 0,
 
@@ -227,10 +231,17 @@ export default {
         userName: "",
         participants: "",
         limit: "",
-        hasJoined: false, //by giving this false showing yetJoined Button,
+        hasJoined: "", //by giving this false showing yetJoined Button,
         isActive: true,
       },
     });
+    const handleInput = () => {
+      state.formData.limit = state.formData.limit.replace(/[^0-9]/g, "");
+      if (state.formData.limit.charAt(0) == "0") {
+        state.formData.limit = "";
+      }
+    };
+
     const contentUpdate = (data) => {
       state.list;
     };
@@ -275,9 +286,7 @@ export default {
       // 2ways -> hasJoined false and true
 
       state.targetItem = await state.list.find((el) => el.id == id); //1
-      console.log(
-        "join target Item : " + JSON.stringify(state.targetItem.participants)
-      );
+      console.log("join target Item : " + JSON.stringify(state.targetItem));
       const user = {
         //user data, event id
         name: state.userName,
@@ -295,49 +304,30 @@ export default {
         alert("Room is full");
         return;
       }
-      state.confirm = window.confirm("Do you really want to join this event?");
+      if (!state.targetItem.hasJoined)
+        state.confirm = window.confirm(
+          "Are you going to participate in this event ?"
+        );
+      else {
+        state.confirm = window.confirm("Are you canceling your participation?");
+      }
       if (state.confirm) {
-        console.log("joinUserData: " + JSON.stringify(user));
         axios.put("/api/todolist/participants_events", user).then((res) => {
-          console.log(
-            "JOIN PARTICIPANTS_EVENTS: " +
-              JSON.stringify(res.data.userJoinEventsId)
-          );
-          state.list = res.data.eventsList;
-          console.log(
-            "-----------------------------------------------------------------------"
-          );
-          console.log("join state list: " + JSON.stringify(state.list));
+          for (let i = 0; i < state.list.length; i++) {
+            if (
+              state.list[i].id == state.targetItem.id &&
+              state.list[i].hasJoined == true
+            ) {
+              state.list[i].hasJoined = false;
+            } else if (
+              state.list[i].id == state.targetItem.id &&
+              state.list[i].hasJoined == false
+            ) {
+              state.list[i].hasJoined = true;
+            }
+          }
         });
       }
-
-      /// from
-      // tempNum++;
-      // console.log("tempNum: " + tempNum);
-      // state.confirm = window.confirm("Do you really want to join this event?");
-      // if (state.confirm) {
-      //   const joinUserData = {
-      //     name: state.userName,
-      //     num: tempNum.toString(),
-      //     id: state.targetItem.id,
-      //     // hasJoined:true; not this
-      //   };
-      //   console.log("contentData: " + JSON.stringify(joinUserData));
-      //   axios
-      //     .put("/api/todolist/join", {
-      //       data: joinUserData,
-      //     })
-      //     .then((res) => {
-      //       console.log("res.data by join: " + JSON.stringify(res.data));
-      //       state.list = res.data;
-      //     })
-      //     .catch((err) => {
-      //       console.log(err);
-      //     });
-      // } else {
-      //   return;
-      // }
-      // window.location.reload(); //refresh cuz button doesn't refresh itself
     };
     //--------------------------join-----------------------------
     //delete
@@ -383,7 +373,6 @@ export default {
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
       state.formData.userName = state.userName;
-      // state.formData.limit = state.tempLimit.toString();
       const formData = state.formData;
       console.log("add formData-> " + JSON.stringify(formData));
       axios
@@ -420,73 +409,56 @@ export default {
         console.log("id: " + el.id + "     isActive: " + el.isActive)
       );
     };
-
+    /**
+     * 1. userId axios로 요청
+     * 2. 유저 아이디가 있다면 res.send(user) or res.send();
+     * 3. if문으로 user정보 유무에 따라 다르게 -> showList axios로 요청
+     * 4. 만약 user가 없다면(no login) -> just list
+     * 4.1 list show로 보여줌
+     * 5. 만약 user가 있다면(yes login) -> list + the events tha user joined
+     * 5.1 list와 user가 참여한 eventsId로 hasJoined 설정
+     */
     //show
-    axios.get("/api/todolist/show").then((res) => {
-      //res.data.user.user.foundJoinEventsId
+    axios.get("/api/todolist/getUser").then((resUser) => {
+      if (resUser.data) {
+        state.userName = resUser.data.user.info.name;
+        const userName = resUser.data.user.info.name;
+        console.log("userName: " + JSON.stringify(userName));
+        axios
+          .get("/api/todolist/show_special", { params: { userName } })
+          .then((res) => {
+            state.list = res.data.list;
 
-      console.log("front if show list: " + JSON.stringify(res.data.list));
-      if (
-        JSON.stringify(res.data.user) !== "{}" &&
-        res.data.user != null &&
-        res.data.user != undefined
-      ) {
-        //if user true
-        console.log(
-          "front if show: " +
-            JSON.stringify(res.data.user.user.foundJoinEventsId)
-        );
-        state.list = res.data.list;
-        state.userName = res.data.user.user.info.name;
-        let cnt = 0;
-        for (let num = 0; num < state.list.length; num++) {
-          state.list[num].hasJoined = false;
-        }
-        if (res.data.user.user.foundJoinEventsId.length > 0) {
-          //if joined events true
-          console.log(
-            "if lennth 0 < " + res.data.user.user.foundJoinEventsId.length
-          );
-
-          console.log(
-            "state list.length: " + JSON.stringify(state.list.length)
-          );
-          for (let i = 0; i < state.list.length; i++) {
-            for (
-              let j = 0;
-              j < res.data.user.user.foundJoinEventsId.length;
-              j++
-            ) {
-              console.log(
-                "state.list[i].id == res.data.user.user.foundJoinEventsId[i]" +
-                  state.list[i].id +
-                  "______" +
-                  JSON.stringify(res.data.user.user.foundJoinEventsId[i])
-              );
-              if (
-                state.list[i].id ==
-                JSON.stringify(res.data.user.user.foundJoinEventsId[i])
-              ) {
-                state.list[i].hasJoined = true;
-                console.log("real hasJoined test: " + state.list[i].hasJoined);
-
-                cnt++;
-              }
-              if (cnt == res.data.user.user.foundJoinEventsId.length) {
-                break;
+            console.log("state length: " + state.list.length);
+            for (let i = 0; i < state.list.length; i++) {
+              state.list[i].hasJoined = false;
+              for (let j = 0; j < res.data.userJoinEventsId.length; j++) {
+                if (state.list[i].id == res.data.userJoinEventsId[j].id) {
+                  state.list[i].hasJoined = true;
+                }
               }
             }
-          }
-        } ///////////////////////////////////////user issue
+          });
       } else {
-        console.log("front if(!res.data.user)" + JSON.stringify(res.data));
-        state.list = res.data.list;
+        console.log("user doesn't exist");
+        axios.get("/api/todolist/show").then((res) => {
+          console.log("/api/todolist/show: " + res.data);
+          state.list = res.data.list;
+          for (let j = 0; j < state.list.length; j++) {
+            state.list[j].hasJoined = false;
+          }
+        });
       }
-
-      console.log("mainList.vue: " + JSON.stringify(state.list));
     });
-
-    return { state, addItem, deleteItem, editItem, hideCardBody, join };
+    return {
+      state,
+      handleInput,
+      addItem,
+      deleteItem,
+      editItem,
+      hideCardBody,
+      join,
+    };
   },
 };
 </script>
