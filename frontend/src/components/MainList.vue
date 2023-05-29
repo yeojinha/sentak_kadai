@@ -300,11 +300,18 @@ export default {
       console.log("join state.userName: " + state.userName);
       let tempNum = 0;
       tempNum = parseInt(state.targetItem.participants);
-      if (parseInt(state.targetItem.limit) == tempNum) {
+
+      if (
+        parseInt(state.targetItem.limit) == tempNum &&
+        !state.targetItem.hasJoined
+      ) {
         alert("Room is full");
         return;
       }
-      if (!state.targetItem.hasJoined)
+      if (
+        !state.targetItem.hasJoined &&
+        parseInt(state.targetItem.limit) != tempNum
+      )
         state.confirm = window.confirm(
           "Are you going to participate in this event ?"
         );
@@ -312,6 +319,7 @@ export default {
         state.confirm = window.confirm("Are you canceling your participation?");
       }
       if (state.confirm) {
+        state.targetItem.participants++;
         axios.put("/api/todolist/participants_events", user).then((res) => {
           for (let i = 0; i < state.list.length; i++) {
             if (
