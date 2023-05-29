@@ -36,6 +36,16 @@ const jwtKey = "abc1234567";
  * 5-2. app.put(content id)-> contents에서 participants +1하기
  * 5-3. 현재 유저가 참여중인 이벤트 id를 res.send하여 front에서 for loop 활용->  만약 서버에서 받은 id가 있다면 ->state.list[i].hasJoined=true;
  */
+const isTokenExpired = (token) => {
+  const currentTime = Math.floor(Date.now() / 1000); // Convert to seconds
+  const tokenData = jwt.decode(token);
+
+  if (tokenData && tokenData.exp && tokenData.exp < currentTime) {
+    return true; // Token has expired
+  }
+
+  return false; // Token is still valid
+};
 
 app.put("/api/todolist/participants_events", async (req, res) => {
   console.log("/api/todolist/participants_events: " + JSON.stringify(req.body));
@@ -239,7 +249,7 @@ app.post("/api/user/login", async (req, res) => {
       },
       jwtKey,
       {
-        expiresIn: "15m",
+        expiresIn: "300s",
         issuer: "yeojin",
       }
     );
@@ -298,11 +308,7 @@ app.delete("/api/user/logout", async (req, res) => {
 app.delete("/api/todolist/delete", async (req, res) => {
   try {
     console.log("req.id: " + JSON.stringify(req.body));
-    /**
-     * write below sql
-     * 1. find target user by userName and delete target user
-     *
-     */
+
     const targetContent = req.body;
 
     await database.run(`DELETE FROM contents WHERE id=?`, [targetContent.id]);
@@ -311,13 +317,6 @@ app.delete("/api/todolist/delete", async (req, res) => {
       [targetContent.id, targetContent.name]
     );
 
-    // data.list = await database.run("SELECT * FROM content");
-    // const idx = await data.list.findIndex((el) => el.id == req.query.id); //find index by element id;
-
-    // if (idx !== -1) {
-    //   //if no element idx is -1 else idx
-    //   data.list.splice(idx, 1); //delete from idx, one object
-    // }
     console.log("deleted List: " + JSON.stringify(data.list));
     data.list = await database.run("SELECT * FROM contents");
     console.log(
@@ -356,10 +355,16 @@ app.post("/api/todolist/add", async (req, res) => {
 //list show
 
 app.get("/api/todolist/getUser", async (req, res) => {
+  let check = {
+    expiredCheck: false,
+  };
   if (req.cookies && req.cookies.token) {
     jwt.verify(req.cookies.token, jwtKey, async (err, decoded) => {
       if (err) {
-        console.log("list show " + err);
+        console.log("Token expired");
+        // check.expiredCheck = true;
+        // res.send(check); // Send an expired message to the front-end
+        res.send();
       }
       const user = decoded;
       res.send(user);
@@ -402,6 +407,25 @@ app.put("/api/todolist", async (req, res) => {
   const found = await data.list.find((el) => el.id == req.body.id);
   found.isActive = req.body.isActive;
   res.send(data);
+});
+
+app.put("/api/todolist/edit/update", async (req, res) => {
+  console.log("update: " + JSON.stringify(req.body));
+  // Perform the database update here
+  // Example using a SQL query with placeholders:
+  await database.run(
+    "UPDATE contents SET title = ?, content = ?, `limit` = ? WHERE id = ?",
+    [req.body.title, req.body.content, req.body.limit, req.body.id],
+    (error) => {
+      if (error) {
+        // Handle the database error here
+        console.error(error);
+        res.status(500).send("Error updating the item in the database.");
+      } else {
+        res.send("Item updated successfully.");
+      }
+    }
+  );
 });
 //----------------------------------------------------------participants----------------------------------------------------------------------
 
