@@ -114,7 +114,8 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   }
   // bakc index.js data : {"userJoinEventsId":[{"id":"1685067720021"}],"eventsList":[{"id":"1685067720021"}]}
   //접근방법 [idx].id
-  res.send(data); // sending the eventsId current user joined + eventsList;
+  const list = await database.run(`SELECT * FROM contents`);
+  res.send(list); // sending the eventsId current user joined + eventsList;
 });
 ////////////////////------------------------USER------------------------//////////////////
 
@@ -267,32 +268,32 @@ app.delete("/api/user/logout", async (req, res) => {
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
 
-//join
-app.put(`/api/todolist/join`, async (req, res) => {
-  console.log("join req.body: " + JSON.stringify(req.body.data)); //receiving name, id
-  let list = await database.run("SELECT * FROM contents");
-  const already_join = await database.run(
-    "SELECT * FROM participants_events WHERE id = ? AND userName =?",
-    [req.body.data.id, req.body.data.name]
-  );
-  if (already_join.length > 0) console.log("already exist");
-  else if (already_join.length <= 0) {
-    console.log("req.body.data.name: " + req.body.data.name);
-    await database.run(`UPDATE contents SET participants = ? WHERE id = ?`, [
-      //현재 참여 인원 수정
-      req.body.data.num,
-      req.body.data.id,
-    ]);
+// //join
+// app.put(`/api/todolist/join`, async (req, res) => {
+//   console.log("join req.body: " + JSON.stringify(req.body.data)); //receiving name, id
+//   let list = await database.run("SELECT * FROM contents");
+//   const already_join = await database.run(
+//     "SELECT * FROM participants_events WHERE id = ? AND userName =?",
+//     [req.body.data.id, req.body.data.name]
+//   );
+//   if (already_join.length > 0) console.log("already exist");
+//   else if (already_join.length <= 0) {
+//     console.log("req.body.data.name: " + req.body.data.name);
+//     await database.run(`UPDATE contents SET participants = ? WHERE id = ?`, [
+//       //현재 참여 인원 수정
+//       req.body.data.num,
+//       req.body.data.id,
+//     ]);
 
-    await database.run(
-      `INSERT INTO participants_events (userName, id) VALUES(?,?)`,
-      [req.body.data.name, req.body.data.id]
-    );
-  }
-  list = await database.run("SELECT * FROM contents");
-  console.log("after join: " + JSON.stringify(list));
-  res.send(list);
-});
+//     await database.run(
+//       `INSERT INTO participants_events (userName, id) VALUES(?,?)`,
+//       [req.body.data.name, req.body.data.id]
+//     );
+//   }
+//   list = await database.run("SELECT * FROM contents");
+//   console.log("after join: " + JSON.stringify(list));
+//   res.send(list);
+// });
 //delete
 app.delete("/api/todolist/delete", async (req, res) => {
   try {
