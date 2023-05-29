@@ -235,7 +235,7 @@ export default {
         empty();
         printCurrentUser();
 
-        // window.location.reload(); //refresh cuz button doesn't refresh itself
+        window.location.reload(); //refresh cuz button doesn't refresh itself
       });
     };
     const checked = () => {
@@ -259,6 +259,9 @@ export default {
           // if undefined or no user found checking
           alert("id or password error.");
           reset(userData);
+          return;
+        } else if (res.data === "login") {
+          alert("user already login!!!");
           return;
         }
         // alert("res on login: "+JSON.stringify(res.token))

@@ -1,19 +1,13 @@
 <template>
-  <div class="app">
-    <Header />
-    <MainList />
+  <div id="app">
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
-import MainList from "./components/MainList.vue";
-import Header from "./components/Header.vue";
-export default {
-  components: {
-    Header,
-    MainList,
-  },
-};
+// import Edit from "./Edit.vue";
+
+export default {};
 </script>
 
 <style></style>

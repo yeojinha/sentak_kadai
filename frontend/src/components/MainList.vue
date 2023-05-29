@@ -15,7 +15,7 @@
               </p>
               <!-- add challenge -->
               <form>
-                <div class="form-group">
+                <!-- <div class="form-group">
                   <label for="formDate.email">Email address</label>
                   <input
                     type="email"
@@ -24,7 +24,7 @@
                     placeholder="name@example.com"
                     v-model="state.formData.email"
                   />
-                </div>
+                </div> -->
                 <div class="form-group">
                   <label for="title">Title</label>
                   <input
@@ -137,13 +137,30 @@
                             Already Joined!!!
                           </button>
                           <button
+                            v-if="
+                              state.userName != undefined &&
+                              state.userName != '' &&
+                              state.userName == item.userName
+                            "
                             class="button-11"
                             role="button"
                             data-mdb-toggle="tooltip"
                             title="Edit todo"
-                            @click="editItem(item.id)"
+                            @click="editItem(item)"
                           >
-                            <i class="fas fa-pencil-alt"></i>
+                            <router-link
+                              :to="{
+                                name: 'Edit',
+                                query: {
+                                  id: item.id,
+                                  limit: item.limit,
+                                  title: item.title,
+                                  content: item.content,
+                                },
+                              }"
+                            >
+                              <i class="fas fa-pencil-alt"></i>
+                            </router-link>
                           </button>
                           <button
                             class="button-11"
@@ -204,13 +221,14 @@
 </template>
 
 <script>
-import { reactive, resolveDirective } from "vue";
+import { reactive } from "vue";
+import { useRouter } from "vue-router";
 // import onlyInt from "vue-input-only-number";
 import axios from "axios";
-import { assertExpressionStatement } from "@babel/types";
+
 export default {
   setup() {
-    const cardBody = null;
+    const router = useRouter();
     const state = reactive({
       //
       joinEvent: [], //cookie 에서 user data 뽑고, participants table에서 그유저가 참여중인 event 목록 대입 -> id있으면 join버튼 색깔 or 변화주기
@@ -257,12 +275,16 @@ export default {
     // methdos
 
     //edit
-    const editItem = (id) => {
-      if (!state.userName || state.userName == "") {
-        alert("Plz Login first!");
-        return;
-      }
-      console.log("edit -> state.item.id : " + id);
+    const editItem = (item) => {
+      router.push({
+        name: "Edit",
+        query: {
+          id: item.id,
+          limit: item.limit,
+          title: item.title,
+          content: item.content,
+        },
+      });
     };
     //-----------------------------join_cancel---------------------
 
@@ -319,29 +341,30 @@ export default {
         state.confirm = window.confirm("Are you canceling your participation?");
       }
       if (state.confirm) {
-        // state.targetItem.participants++;
-        axios.put("/api/todolist/participants_events", user).then((res) => {
-          console.log("res.data.list: " + JSON.stringify(res.data));
-          // state.list = res.data;
+        axios
+          .put("/api/todolist/participants_events", user)
+          .then(async (res) => {
+            console.log("res.data.list: " + JSON.stringify(res.data));
+            // state.list = res.data;
 
-          for (let i = 0; i < state.list.length; i++) {
-            console.log("for문 진입?");
-            state.list[i].participants = res.data[i].participants;
-            if (
-              state.list[i].id == state.targetItem.id &&
-              state.list[i].hasJoined == true
-            ) {
-              console.log("if?");
-              state.list[i].hasJoined = false;
-            } else if (
-              state.list[i].id == state.targetItem.id &&
-              state.list[i].hasJoined == false
-            ) {
-              console.log("else if?");
-              state.list[i].hasJoined = true;
+            for (let i = 0; i < state.list.length; i++) {
+              console.log("for문 진입?");
+              state.list[i].participants = res.data[i].participants;
+              if (
+                state.list[i].id == state.targetItem.id &&
+                state.list[i].hasJoined == true
+              ) {
+                console.log("if?");
+                state.list[i].hasJoined = false;
+              } else if (
+                state.list[i].id == state.targetItem.id &&
+                state.list[i].hasJoined == false
+              ) {
+                console.log("else if?");
+                state.list[i].hasJoined = true;
+              }
             }
-          }
-        });
+          });
       }
     };
     //--------------------------join-----------------------------
@@ -435,7 +458,9 @@ export default {
      */
     //show
     axios.get("/api/todolist/getUser").then((resUser) => {
-      if (resUser.data) {
+      // alert("resUser token check: " + );
+
+      if (resUser.data.user) {
         state.userName = resUser.data.user.info.name;
         const userName = resUser.data.user.info.name;
         console.log("userName: " + JSON.stringify(userName));
@@ -467,6 +492,7 @@ export default {
     });
     return {
       state,
+      router,
       handleInput,
       addItem,
       deleteItem,
