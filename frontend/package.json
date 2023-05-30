@@ -15,6 +15,7 @@
     "path": "^0.12.7",
     "scss": "^0.2.4",
     "vue": "^3.2.13",
+    "vue-bootstrap-modal": "^0.1.13",
     "vue-router": "^4.0.13"
   },
   "devDependencies": {

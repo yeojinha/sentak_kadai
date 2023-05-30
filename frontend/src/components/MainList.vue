@@ -207,7 +207,7 @@
                         { 'd-none': item.isActive },
                       ]"
                     >
-                      {{ item.content }}
+                      <h4>{{ item.content }}</h4>
                     </div>
                   </div>
                 </div>
