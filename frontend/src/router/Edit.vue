@@ -1,7 +1,4 @@
 <template>
-  <!-- <div>email: {{ $route.query.email }}</div> -->
-  <!-- <div>title: {{ $route.query.title }}</div>
-  <div>content {{ $route.query.content }}</div> -->
   <section class="vh-100">
     <div class="container py-5 h-100">
       <div class="row d-flex justify-content-center align-items-center h-100">
@@ -79,6 +76,7 @@ export default {
     // const router = useRouter();
     const route = useRoute();
     const state = reactive({
+      confirm: "",
       //  // email: router.query.email || "",
       formData: {
         id: route.query.id || "",
@@ -95,18 +93,19 @@ export default {
       }
     };
     const addItem = () => {
-      axios
-        .put("api/todolist/edit/update", state.formData)
-        .then((response) => {
-          // Handle the response here if needed
-          console.log(response.data);
-          alert("Updated!!!");
-          router.push("/"); // Navigate to "/" route after alert OK button is clicked
-        })
-        .catch((error) => {
-          // Handle the error here
-          console.error(error);
-        });
+      state.confirm = window.confirm("Do you want to edit??");
+      if (state.confirm) {
+        axios
+          .put("api/todolist/edit/update", state.formData)
+          .then((response) => {
+            // Handle the response here if needed
+            console.log(response.data);
+            alert("Updated!!!");
+            router.push("/"); // Navigate to "/" route after alert OK button is clicked
+          });
+      } else {
+        return;
+      }
     };
 
     return {
