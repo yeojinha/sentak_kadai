@@ -70,7 +70,7 @@
 
               <hr class="my-4" />
 
-              <div
+              <!-- <div
                 class="d-flex justify-content-end align-items-center mb-4 pt-2 pb-3"
               >
                 <p class="small mb-0 me-2 text-muted">Filter</p>
@@ -91,7 +91,7 @@
                   title="Ascending"
                   ><i class="fas fa-sort-amount-down-alt ms-2"></i
                 ></a>
-              </div>
+              </div> -->
               <!--  ul Challenge List -->
               <div>
                 <div class="card" v-for="item in state.list" :key="item.id">
@@ -115,7 +115,9 @@
                           </button>
                           <!-- if hasJoined fasle showing join button -->
                           <button
-                            v-if="!item.hasJoined"
+                            v-if="
+                              !item.hasJoined && item.userName != state.userName
+                            "
                             class="button-11"
                             role="button"
                             data-mdb-toggle="tooltip"
@@ -127,7 +129,7 @@
 
                           <!-- else don't show join button -->
                           <button
-                            v-else
+                            v-else-if="item.hasJoined"
                             class="button-11"
                             role="button"
                             data-mdb-toggle="tooltip"
@@ -135,6 +137,15 @@
                             @click="join(item.id)"
                           >
                             Already Joined!!!
+                          </button>
+                          <button
+                            v-else
+                            class="button-11"
+                            role="button"
+                            data-mdb-toggle="tooltip"
+                            title="join todo"
+                          >
+                            Your room
                           </button>
                           <button
                             v-if="
@@ -204,7 +215,7 @@
                     <div
                       :class="[
                         'card-body-' + item.id,
-                        { 'd-none': item.isActive },
+                        { 'd-none': !item.isActive },
                       ]"
                     >
                       <h4>{{ item.content }}</h4>
@@ -320,7 +331,7 @@ export default {
         return;
       }
       console.log("join state.userName: " + state.userName);
-      let tempNum = 0;
+      let tempNum = 1;
       tempNum = parseInt(state.targetItem.participants);
 
       if (
@@ -435,6 +446,7 @@ export default {
           // state.userName = "";
           //clear input
         });
+      window.location.reload(); //refresh cuz button doesn't refresh itself
     };
 
     const hideCardBody = async (id) => {
