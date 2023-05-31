@@ -1,41 +1,25 @@
 const express = require("express");
+const { sendMailMaster, sendMailMinors } = require("./mail");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const schedule = require("node-schedule");
+
 const jwt = require("jsonwebtoken");
 const database = require("./database");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
-
 app.use(express.json());
-
 const port = 3000;
-const participants = {
-  userName: "",
-  email: "",
-};
-const user = "";
+
 const data = {
   list: [],
   user: {},
 };
-const userList = [];
+
 const jwtKey = "abc1234567";
-/**
- * 0. 유저 로그인 상태, 클릭 시
- * 1. 현재 클릭한 이벤트 대상 targetItem에 대입
- * 2. 체크(유저 로그인상태인가?) true 3으로 false -> return
- * 3. axios.put(현재 유저name 현재 targetEventId) -> participant_events에서 현 userName, 현 eventId  있는지 가져오기
- * 4. Server Side -> sql로 if(event id && userName in participants_events) -> if(found) true(존재)
- * 4-1. app.delete(현재 유저정보, 이벤트id) -> participants_events에서 해당하는 data 삭제
- * 4-2. app.put(event id)-> contents 에서 participants -1하기
- * 4-2. 현 아이템 state.list[now].hasJoined=false;
- * 5. if(현재 유저가 신규 유저가 될 것이라면) -> if(found.length<0)
- * 5-1. app.put(현재 유저정보, 이벤트id) -> participants_events에서 data 추가
- * 5-2. app.put(content id)-> contents에서 participants +1하기
- * 5-3. 현재 유저가 참여중인 이벤트 id를 res.send하여 front에서 for loop 활용->  만약 서버에서 받은 id가 있다면 ->state.list[i].hasJoined=true;
- */
+
 const isTokenExpired = (token) => {
   const currentTime = Math.floor(Date.now() / 1000); // Convert to seconds
   const tokenData = jwt.decode(token);
@@ -64,7 +48,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   ); //현재 인원수
 
   console.log("numberOfPart: " + JSON.stringify(numberOfPart[0].participants));
-  if (numberOfPart[0].participants > 0) {
+  if (numberOfPart[0].participants > 1) {
     numberOf = parseInt(numberOfPart[0].participants);
     console.log("numberOf: " + numberOf);
   }
@@ -106,7 +90,9 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       `SELECT id FROM participants_events WHERE userName = ?`,
       [req.body.name]
     ),
-    eventsList: await database.run(`SELECT * FROM contents WHERE userName`),
+    eventsList: await database.run(
+      "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents WHERE userName"
+    ),
   };
 
   console.log(
@@ -124,21 +110,13 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   }
   // bakc index.js data : {"userJoinEventsId":[{"id":"1685067720021"}],"eventsList":[{"id":"1685067720021"}]}
   //접근방법 [idx].id
-  const list = await database.run(`SELECT * FROM contents`);
+  const list = await database.run(
+    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+  );
   res.send(list); // sending the eventsId current user joined + eventsList;
 });
 ////////////////////------------------------USER------------------------//////////////////
 
-//checking if user's cookies or token is still alive
-// const cookieCheck = (req, res) => {
-
-// };
-// const loginSetTrue = (user) => {
-//   console.log("user.userName in loginSetTrue: " + user.userName);
-//   database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
-//     user.userName,
-//   ]);
-// };
 const findUser = async (name, password) => {
   //using wiht async await
   let data = await database.run(
@@ -148,6 +126,7 @@ const findUser = async (name, password) => {
   // console.log("findUser data: " + JSON.stringify(data));
   return data;
 };
+
 app.get("/api/user", (req, res) => {
   if (req.cookies && req.cookies.token) {
     console.log(
@@ -165,23 +144,7 @@ app.get("/api/user", (req, res) => {
 //signup
 app.post("/api/user/signup", async (req, res) => {
   console.log("singup: " + JSON.stringify(req.body));
-  /**
-   * singup: {"info":{"password":"123","confirm_password":"123","name":"123","email":"123"},"checked":{"accepted":true,"login_check":false}}
------------
-back----------> [{"info":{"password":"123","confirm_password":"123","name":"123","email":"123"},"checked":{"accepted":true,"login_check":false}}]
 
-   * 
-   * 
-   */
-
-  // await database.run(`INSERT INTO memos (content) VALUES (?)`, [
-  //   req.body.content,
-  // ]);
-  // const result = await database.run("SELECT * FROM memos");
-  // res.send(result);
-  // const found = await database.run(
-  //   "SELECT userName, COUNT(userName) FROM user GROUP BY userName, HAVING COUNT(userName) > 0"
-  // );
   console.log("req.body.info.name-> " + req.body.info.name);
   console.log("-----------");
   let userData = await findUser(req.body.info.name, req.body.info.password);
@@ -193,6 +156,7 @@ back----------> [{"info":{"password":"123","confirm_password":"123","name":"123"
     req.body.info.email,
     req.body.info.password
   );
+
   if (userData.length > 0) {
     //if already userName is in the list
     console.log("user name or email");
@@ -277,33 +241,6 @@ app.delete("/api/user/logout", async (req, res) => {
   res.sendStatus(200);
 });
 /////////////////////////////////////___________list_________/////////////////////////////////////////////////////
-
-// //join
-// app.put(`/api/todolist/join`, async (req, res) => {
-//   console.log("join req.body: " + JSON.stringify(req.body.data)); //receiving name, id
-//   let list = await database.run("SELECT * FROM contents");
-//   const already_join = await database.run(
-//     "SELECT * FROM participants_events WHERE id = ? AND userName =?",
-//     [req.body.data.id, req.body.data.name]
-//   );
-//   if (already_join.length > 0) console.log("already exist");
-//   else if (already_join.length <= 0) {
-//     console.log("req.body.data.name: " + req.body.data.name);
-//     await database.run(`UPDATE contents SET participants = ? WHERE id = ?`, [
-//       //현재 참여 인원 수정
-//       req.body.data.num,
-//       req.body.data.id,
-//     ]);
-
-//     await database.run(
-//       `INSERT INTO participants_events (userName, id) VALUES(?,?)`,
-//       [req.body.data.name, req.body.data.id]
-//     );
-//   }
-//   list = await database.run("SELECT * FROM contents");
-//   console.log("after join: " + JSON.stringify(list));
-//   res.send(list);
-// });
 //delete
 app.delete("/api/todolist/delete", async (req, res) => {
   try {
@@ -318,7 +255,9 @@ app.delete("/api/todolist/delete", async (req, res) => {
     );
 
     console.log("deleted List: " + JSON.stringify(data.list));
-    data.list = await database.run("SELECT * FROM contents");
+    data.list = await database.run(
+      "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+    );
     console.log(
       "data.list after delete on sever_side: " + JSON.stringify(data.list)
     );
@@ -332,10 +271,15 @@ app.delete("/api/todolist/delete", async (req, res) => {
 app.post("/api/todolist/add", async (req, res) => {
   const formData = req.body;
   console.log("form data on add post: " + JSON.stringify(formData));
+  const data = await database.run(`SELECT email FROM user WHERE userName = ?`, [
+    formData.userName,
+  ]);
+  console.log("data: " + data[0].email);
   await database.run(
-    `INSERT INTO contents(id, title, content, createdAt, userName,participants, \`limit\`) VALUES(?,?,?,?,?,?,?)`,
+    `INSERT INTO contents(id, email,title, content, createdAt, userName,participants, \`limit\`) VALUES(?,?,?,?,?,?,?,?)`,
     [
       formData.id,
+      data[0].email,
       formData.title,
       formData.content,
       formData.createdAt,
@@ -345,7 +289,9 @@ app.post("/api/todolist/add", async (req, res) => {
     ]
   );
   // await data.list.push(formData); //change to sql -> push data by insert sql
-  const list = await database.run(`SELECT * FROM contents`); //array returns
+  const list = await database.run(
+    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+  ); //array returns
   console.log("add list :" + list);
 
   //change to sql -> get data by select sql
@@ -377,7 +323,9 @@ app.get("/api/todolist/getUser", async (req, res) => {
 app.get("/api/todolist/show_special", async (req, res) => {
   console.log("show_special: " + JSON.stringify(req.query.userName));
 
-  data.list = await database.run("SELECT * FROM contents");
+  data.list = await database.run(
+    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+  );
   data.userJoinEventsId = await database.run(
     `SELECT id FROM participants_events WHERE userName =?`,
     [req.query.userName]
@@ -397,7 +345,9 @@ app.get("/api/todolist/show_special", async (req, res) => {
 });
 
 app.get("/api/todolist/show", async (req, res) => {
-  data.list = await database.run("SELECT * FROM contents");
+  data.list = await database.run(
+    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+  );
   res.send(data);
 });
 
@@ -429,9 +379,39 @@ app.put("/api/todolist/edit/update", async (req, res) => {
 });
 //----------------------------------------------------------participants----------------------------------------------------------------------
 
+let mailSystem = schedule.scheduleJob("0 0 17 * * *", async () => {
+  const userInfoPE = await database.run(
+    `SELECT pe.id, u.email, c.title FROM user AS u JOIN participants_events AS pe ON u.userName = pe.userName JOIN contents AS c ON pe.id=c.id`
+  ); //참여한 방과 그 사람의 이메일
+  const masterContent = await database.run(
+    "SELECT email, id, title FROM contents WHERE participants > 1"
+  ); //방장 이메일, 방 아이디, 방제목 ,, only participats > 0
+  let small = [];
+  let middle = new Map();
+  let big = new Map();
+  for (let i = 0; i < userInfoPE.length; i++) {
+    const id = userInfoPE[i].id;
+    if (!middle.has(id)) {
+      middle.set(id, []);
+      small.push(id);
+    }
+    middle.get(id).push(userInfoPE[i]);
+  }
+
+  for (let i = 0; i < masterContent.length; i++) {
+    let id = masterContent[i].id;
+    let email = masterContent[i].email;
+    for (let j = 0; j < middle.size; j++) {
+      if (id == middle.get(small[j])[0].id && !big.has(email)) {
+        big.set(email, []);
+      }
+    }
+    big.get(email).push(middle.get(small[i]));
+  }
+  sendMailMaster(big);
+});
+
+//----------------------------------------------------------mail mail ------------------------------------------------------------------------
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
 });
-
-//app.get  show executed first, second is login method <- this is problem that second method actually create token and add it to data; however
-//if app.get show first, that is before the cookie created, so " if (req.cookies && req.cookies.token)" <- could't find cookie in it.

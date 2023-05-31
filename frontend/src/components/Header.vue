@@ -25,7 +25,7 @@
           <ul class="dropdown-menu form-wrapper">
             <li>
               <form>
-                <p class="hint-text">Sign in with your social media account</p>
+                <!-- <p class="hint-text">Sign in with your social media account</p>
                 <div class="form-group social-btn clearfix">
                   <a href="#" class="btn btn-primary pull-left"
                     ><i class="fa fa-facebook"></i> Facebook</a
@@ -33,8 +33,8 @@
                   <a href="#" class="btn btn-info pull-right"
                     ><i class="fa fa-twitter"></i> Twitter</a
                   >
-                </div>
-                <div class="or-seperator"><b>or</b></div>
+                </div> -->
+                <!-- <div class="or-seperator"><b>or</b></div> -->
                 <div class="form-group">
                   <input
                     type="text"
@@ -222,10 +222,6 @@ export default {
 
     //logout
     const logout = () => {
-      alert(
-        "userData.user foundEventsId:" +
-          JSON.stringify(userData.user.foundEventsId)
-      );
       const logoutUser = {
         name: userData.user.info.name,
         password: userData.user.info.password,
