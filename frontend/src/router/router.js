@@ -11,6 +11,11 @@ const routes = [
     name: "Home", // [이름]
     component: () => import("./Home.vue"), // [로드 파일]
   },
+  {
+    path: "/mypage",
+    name: "MyPage",
+    component: () => import("./MyPage.vue"),
+  },
 ];
 
 const router = createRouter({

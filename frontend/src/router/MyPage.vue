@@ -1,4 +1,5 @@
 <template>
+  <Header />
   <section class="vh-100">
     <div class="container py-5 h-100">
       <div class="row d-flex justify-content-center align-items-center h-100">
@@ -10,89 +11,15 @@
           >
             <div class="card-body py-4 px-4 px-md-5">
               <p class="h1 text-center mt-3 mb-4 pb-3 text-primary">
-                <i class="fas fa-check-square me-1"></i>
-                <u>JOIN CHALLENGE</u>
+                <i class="fas fa-check-square me-1">Click ->&nbsp;&nbsp;</i>
+                <i
+                  class="fas fa-check-square me-1"
+                  type="button"
+                  @click="switchTitle()"
+                  >{{ state.title }}</i
+                >
               </p>
-              <!-- add challenge -->
-              <form>
-                <!-- <div class="form-group">
-                  <label for="formDate.email">Email address</label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    placeholder="name@example.com"
-                    v-model="state.formData.email"
-                  />
-                </div> -->
-                <div class="form-group">
-                  <label for="title">Title</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="title"
-                    placeholder="plz enter the title, this will be shown as your title"
-                    v-model="state.formData.title"
-                  />
-                </div>
 
-                <div class="form-group">
-                  <label for="content">Example textarea</label>
-                  <textarea
-                    class="form-control"
-                    id="content"
-                    placeholder="event detail place"
-                    rows="3"
-                    v-model="state.formData.content"
-                  ></textarea>
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    id="typeNumber"
-                    class="form-control"
-                    placeholder="How many people do you want to join in your event?"
-                    min="1"
-                    v-model="state.formData.limit"
-                    @input="handleInput"
-                  />
-                  <label class="form-label" for="typeNumber"></label
-                  ><button
-                    type="button"
-                    class="btn btn-primary"
-                    @click="addItem()"
-                  >
-                    POST
-                  </button>
-                </div>
-              </form>
-              <!--add challenge  -->
-
-              <hr class="my-4" />
-
-              <div
-                class="d-flex justify-content-end align-items-center mb-4 pt-2 pb-3"
-              >
-                <p class="small mb-0 me-2 text-muted">Filter</p>
-                <select class="select" v-model="state.selected_category">
-                  <option v-for="(item, index) in state.data" :key="index">
-                    {{ item }}
-                  </option>
-                </select>
-                <p class="small mb-0 ms-4 me-2 text-muted">Sort</p>
-                <select class="select" v-model="state.selected_date">
-                  <option value="1">Added date</option>
-                  <option value="2">Due date</option>
-                </select>
-                <a
-                  href="#!"
-                  style="color: #23af89"
-                  data-mdb-toggle="tooltip"
-                  title="Ascending"
-                  ><i class="fas fa-sort-amount-down-alt ms-2"></i
-                ></a>
-              </div>
-              <!--  ul Challenge List -->
               <div>
                 <div class="card" v-for="item in state.list" :key="item.id">
                   <section class="card-header" :id="'headingOne-' + item.id">
@@ -114,22 +41,10 @@
                             <h4>{{ item.title }}</h4>
                           </button>
                           <!-- if hasJoined fasle showing join button -->
-                          <button
-                            v-if="
-                              !item.hasJoined && item.userName != state.userName
-                            "
-                            class="button-11"
-                            role="button"
-                            data-mdb-toggle="tooltip"
-                            title="join todo"
-                            @click="join(item.id)"
-                          >
-                            <i class="fas fa-check"></i>
-                          </button>
 
                           <!-- else don't show join button -->
                           <button
-                            v-else-if="item.hasJoined"
+                            v-if="!state.flag"
                             class="button-11"
                             role="button"
                             data-mdb-toggle="tooltip"
@@ -151,7 +66,8 @@
                             v-if="
                               state.userName != undefined &&
                               state.userName != '' &&
-                              state.userName == item.userName
+                              state.userName == item.userName &&
+                              state.flag
                             "
                             class="button-11"
                             role="button"
@@ -215,7 +131,7 @@
                     <div
                       :class="[
                         'card-body-' + item.id,
-                        { 'd-none': !item.isActive },
+                        { 'd-none': item.isActive },
                       ]"
                     >
                       <h4>{{ item.content }}</h4>
@@ -232,16 +148,20 @@
 </template>
 
 <script>
-import { reactive } from "vue";
 import { useRouter } from "vue-router";
-// import onlyInt from "vue-input-only-number";
+import { reactive, toRefs } from "vue";
+import Header from "../components/Header.vue";
 import axios from "axios";
 
 export default {
+  components: {
+    Header,
+  },
   setup() {
     const router = useRouter();
     const state = reactive({
-      //
+      flag: true,
+      title: "MY CHALLENGES",
       joinEvent: [], //cookie 에서 user data 뽑고, participants table에서 그유저가 참여중인 event 목록 대입 -> id있으면 join버튼 색깔 or 변화주기
       confirm: "",
       targetItem: "",
@@ -264,23 +184,14 @@ export default {
         isActive: true,
       },
     });
-    const handleInput = () => {
-      state.formData.limit = state.formData.limit.replace(/[^0-9]/g, "");
-      if (state.formData.limit.charAt(0) == "0") {
-        state.formData.limit = "";
-      }
-    };
-    //time set method
-    const getToday = () => {
-      let date = new Date();
-      let year = date.getFullYear();
-      let month = ("0" + (1 + date.getMonth())).slice(-2);
-      let day = ("0" + date.getDate()).slice(-2);
-      return year + "/" + month + "/" + day;
-    };
 
-    // methdos
-
+    const switchTitle = () => {
+      state.flag = !state.flag;
+      if (state.flag) state.title = "MY CHALLENGES";
+      else state.title = "JOINED CHALLENGES";
+      console.log("flag: " + state.flag);
+      showContents();
+    };
     //edit
     const editItem = (item) => {
       router.push({
@@ -294,8 +205,6 @@ export default {
       });
     };
     //-----------------------------join_cancel---------------------
-
-    //-----------------------------join------------------------------
     const join = async (id) => {
       //inside this method,
       /**
@@ -373,7 +282,6 @@ export default {
             }
           });
       }
-      // window.location.reload(); //refresh cuz button doesn't refresh itself
     };
     //--------------------------join-----------------------------
     //delete
@@ -409,42 +317,6 @@ export default {
         return;
       }
     };
-    //add
-    const addItem = () => {
-      console.log("addItem on adding content isId-> " + state.userName);
-      if (!state.userName || state.userName == "") {
-        alert("Plz Login first!");
-        return;
-      }
-      state.formData.createdAt = getToday();
-      state.formData.id = new Date().getTime(); //create id
-      state.formData.userName = state.userName;
-      const formData = state.formData;
-      console.log("add formData-> " + JSON.stringify(formData));
-      axios
-        .post("/api/todolist/add", formData)
-        .then((res) => {
-          state.list = res.data;
-          console.log("res.data by post: " + JSON.stringify(res.data));
-        })
-        .catch((err) => {
-          console.log(err);
-        })
-        .finally(() => {
-          state.formData.id = "";
-          state.formData.email = "";
-          state.formData.title = "";
-          state.formData.content = "";
-          state.formData.createdAt = "";
-          state.formData.userName = "";
-          state.formData.participants = "";
-          state.formData.limit = "";
-          state.formData.hasJoined = false;
-          // state.userName = "";
-          //clear input
-        });
-      window.location.reload(); //refresh cuz button doesn't refresh itself
-    };
 
     const hideCardBody = async (id) => {
       // alert("clicked id: " + id);
@@ -456,58 +328,46 @@ export default {
         console.log("id: " + el.id + "     isActive: " + el.isActive)
       );
     };
-    /**
-     * 1. userId axios로 요청
-     * 2. 유저 아이디가 있다면 res.send(user) or res.send();
-     * 3. if문으로 user정보 유무에 따라 다르게 -> showList axios로 요청
-     * 4. 만약 user가 없다면(no login) -> just list
-     * 4.1 list show로 보여줌
-     * 5. 만약 user가 있다면(yes login) -> list + the events tha user joined
-     * 5.1 list와 user가 참여한 eventsId로 hasJoined 설정
-     */
-    //show
-    axios.get("/api/todolist/getUser").then((resUser) => {
-      // alert("resUser token check: " + );
-
-      if (resUser.data.user) {
-        state.userName = resUser.data.user.info.name;
-        const userName = resUser.data.user.info.name;
-        console.log("userName: " + JSON.stringify(userName));
-        axios
-          .get("/api/todolist/show_special", { params: { userName } })
-          .then((res) => {
-            state.list = res.data.list;
-
-            console.log("state length: " + state.list.length);
-            for (let i = 0; i < state.list.length; i++) {
-              state.list[i].hasJoined = false;
-              for (let j = 0; j < res.data.userJoinEventsId.length; j++) {
-                if (state.list[i].id == res.data.userJoinEventsId[j].id) {
-                  state.list[i].hasJoined = true;
-                }
-              }
-            }
-          });
-      } else {
-        console.log("user doesn't exist");
-        axios.get("/api/todolist/show").then((res) => {
-          console.log("/api/todolist/show: " + res.data);
-          state.list = res.data.list;
-          for (let j = 0; j < state.list.length; j++) {
-            state.list[j].hasJoined = false;
+    const findMyContents = (arr1, name) => {
+      return arr1.filter((el) => name == el.userName);
+    };
+    const showContents = () =>
+      axios.get("/api/todolist/getUser").then((resUser) => {
+        if (resUser.data.user) {
+          state.userName = resUser.data.user.info.name;
+          const userName = resUser.data.user.info.name;
+          if (!state.flag) {
+            axios
+              .get("/api/todolist/my_page_joined", { params: { userName } })
+              .then((res) => {
+                console.log(
+                  "my_page_joined front: " + JSON.stringify(res.data.list)
+                );
+                state.list = res.data.list;
+              });
+          } else if (state.flag) {
+            console.log("changed!!!!");
+            axios
+              .get("/api/todolist/my_challenges", { params: { userName } })
+              .then((res) => {
+                state.list = res.data.list;
+              });
           }
-        });
-      }
-    });
+        } else {
+          state.list = null;
+        }
+      });
+    showContents();
     return {
       state,
       router,
-      handleInput,
-      addItem,
+      join,
       deleteItem,
       editItem,
       hideCardBody,
-      join,
+      switchTitle,
+      showContents,
+      findMyContents,
     };
   },
 };
