@@ -5,8 +5,10 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const schedule = require("node-schedule");
 
-const jwt = require("jsonwebtoken");
 const database = require("./database");
+const jwt = require("./jwt/token");
+
+const authJwt = require("./jwt/authJWT");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -17,19 +19,16 @@ const data = {
   list: [],
   user: {},
 };
-
-const jwtKey = "abc1234567";
-
-const isTokenExpired = (token) => {
-  const currentTime = Math.floor(Date.now() / 1000); // Convert to seconds
-  const tokenData = jwt.decode(token);
-
-  if (tokenData && tokenData.exp && tokenData.exp < currentTime) {
-    return true; // Token has expired
-  }
-
-  return false; // Token is still valid
-};
+// const jwtKey = "abc1234567";
+// let jwtKey = null;
+// const getJwtKey = async () => {
+//   const result = await database.run(`SELECT * FROM jwtKey`);
+//   if (result && result.length > 0) {
+//     return result[0].jwtKey;
+//   } else {
+//     return null;
+//   }
+// };
 
 app.put("/api/todolist/participants_events", async (req, res) => {
   console.log("/api/todolist/participants_events: " + JSON.stringify(req.body));
@@ -48,7 +47,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   ); //현재 인원수
 
   console.log("numberOfPart: " + JSON.stringify(numberOfPart[0].participants));
-  if (numberOfPart[0].participants > 1) {
+  if (numberOfPart[0].participants >= 1) {
     numberOf = parseInt(numberOfPart[0].participants);
     console.log("numberOf: " + numberOf);
   }
@@ -61,7 +60,6 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       `DELETE FROM participants_events WHERE userName=? AND id=?`,
       [req.body.name, req.body.id]
     ); //해당 데이터 삭제
-
     numberOf--;
     console.log("in the event numberOfPar check: " + numberOf);
   } else {
@@ -120,23 +118,26 @@ app.put("/api/todolist/participants_events", async (req, res) => {
 const findUser = async (name, password) => {
   //using wiht async await
   let data = await database.run(
-    `SELECT * FROM user WHERE userName = ? AND password = ?`,
+    `SELECT userName,email,login_check,accepted,refreshToken FROM user WHERE userName = ? AND password = ?`,
     [name, password]
   );
   // console.log("findUser data: " + JSON.stringify(data));
   return data;
 };
 
-app.get("/api/user", (req, res) => {
+app.get("/api/user", async (req, res) => {
+  // jwtKey = await getJwtKey();
   if (req.cookies && req.cookies.token) {
     console.log(
       "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
     );
-    jwt.verify(req.cookies.token, jwtKey, (err, decoded) => {
-      res.send(decoded);
-    });
+    const decoded = await jwt.verify(req);
+    console.log("DECODE: " + JSON.stringify(decoded));
+    res.send(decoded);
   } else {
-    // Return an empty response (200 OK) instead of 401 Unauthorized
+    console.log(
+      "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
+    );
     res.send();
   }
 });
@@ -181,9 +182,7 @@ app.post("/api/user/signup", async (req, res) => {
 //Login
 app.post("/api/user/login", async (req, res) => {
   const user = req.body;
-  console.log("user: " + JSON.stringify(user));
-  console.log("back username: " + user.name);
-  console.log("back password: " + user.password);
+  let token = null;
   let foundUser = null;
 
   foundUser = await findUser(user.name, user.password);
@@ -196,31 +195,27 @@ app.post("/api/user/login", async (req, res) => {
     await database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
       foundUser[0].userName,
     ]);
-    const token = jwt.sign(
-      {
-        user: {
-          info: {
-            // password: foundUser.info.password,
-            // confirm_password: foundUser.info.confirm_password,
-            name: foundUser[0].userName,
-            email: foundUser[0].email,
-          },
-          checked: {
-            // accepted: foundUser.checked.accepted,
-            login_check: foundUser[0].login_check,
-          },
-        },
-      },
-      jwtKey,
-      {
-        expiresIn: "300s",
-        issuer: "yeojin",
-      }
-    );
+    if (await jwt.refreshVerify(foundUser[0].userName)) {
+      //only access expired.
+      token = await jwt.sign(foundUser);
+      console.log("리프레쉬 토큰은 만들어지지 않는다, 왜냐 만료기한 전이라서");
+    } else {
+      //expired both tokens.
+      token = await jwt.sign(foundUser);
+      const refreshToken = await jwt.refresh();
 
+      console.log("access token: " + JSON.stringify(token));
+      console.log("refresh Token: " + JSON.stringify(refreshToken));
+      await database.run(
+        //refresh token into database
+        "UPDATE user SET refreshToken = ? WHERE userName = ?",
+        [refreshToken, foundUser[0].userName]
+      );
+    }
     res.cookie("token", token); //set cookie browser
+    // res.cookie("refreshToken", refreshToken);//not recommendable
+    // res.cookie("refreshToken", refreshToken);
     //login true
-    // await loginSetTrue(foundUser);
     console.log("foundUser" + JSON.stringify(foundUser[0]));
     res.send(foundUser[0]); //send foundUser including cookie and jwt
   } else {
@@ -301,25 +296,33 @@ app.post("/api/todolist/add", async (req, res) => {
 //list show
 
 app.get("/api/todolist/getUser", async (req, res) => {
-  let check = {
-    expiredCheck: false,
-  };
   if (req.cookies && req.cookies.token) {
-    jwt.verify(req.cookies.token, jwtKey, async (err, decoded) => {
-      if (err) {
-        console.log("Token expired");
-        // check.expiredCheck = true;
-        // res.send(check); // Send an expired message to the front-end
-        res.send();
-      }
-      const user = decoded;
-      res.send(user);
-    });
+    console.log("getUser: " + JSON.stringify(req.cookies.token));
+    const user = await jwt.verify(req);
+    res.send(user);
   } else {
+    console.log("getUser: " + JSON.stringify(req.cookies.token));
     res.send();
   }
 });
+app.get("/api/todolist/my_challenges", async (req, res) => {
+  const userName = req.query.userName;
 
+  data.list = await database.run(`SELECT * FROM contents WHERE userName = ?`, [
+    userName,
+  ]);
+  res.send(data);
+});
+app.get("/api/todolist/my_page_joined", async (req, res) => {
+  //`SELECT pe.id, u.email, c.title FROM user AS u JOIN participants_events AS pe ON u.userName = pe.userName JOIN contents AS c ON pe.id=c.id`
+  data.list = await database.run(
+    `SELECT c.id, c.email, c.title, c.content, c.createdAt, c.userName, c.participants, c.limit, c.isActive FROM contents AS c JOIN participants_events AS pe ON c.id = pe.id WHERE pe.userName = ?`,
+    [req.query.userName]
+  );
+  res.send(data);
+
+  console.log("my_page_joined: " + JSON.stringify(data.list));
+});
 app.get("/api/todolist/show_special", async (req, res) => {
   console.log("show_special: " + JSON.stringify(req.query.userName));
 
@@ -332,15 +335,8 @@ app.get("/api/todolist/show_special", async (req, res) => {
   );
   //get list data by select sql and put it data.list;
   if (req.cookies && req.cookies.token) {
-    jwt.verify(req.cookies.token, jwtKey, async (err, decoded) => {
-      if (err) {
-        console.log("list show " + err);
-      }
-      data.user = decoded;
-      //if user true, finds joined events
-      console.log(`data: ${JSON.stringify(data.userJoinEventsId)}`);
-      res.send(data);
-    });
+    data.user = await jwt.verify(req);
+    res.send(data);
   }
 });
 
@@ -379,13 +375,13 @@ app.put("/api/todolist/edit/update", async (req, res) => {
 });
 //----------------------------------------------------------participants----------------------------------------------------------------------
 
-let mailSystem = schedule.scheduleJob("0 0 17 * * *", async () => {
+const mailSystem = schedule.scheduleJob("0 0 17 * * *", async () => {
   const userInfoPE = await database.run(
     `SELECT pe.id, u.email, c.title FROM user AS u JOIN participants_events AS pe ON u.userName = pe.userName JOIN contents AS c ON pe.id=c.id`
   ); //참여한 방과 그 사람의 이메일
   const masterContent = await database.run(
     "SELECT email, id, title FROM contents WHERE participants > 1"
-  ); //방장 이메일, 방 아이디, 방제목 ,, only participats > 0
+  ); //방장 이메일, 방 아이디, 방제목 ,, only participants > 0
   let small = [];
   let middle = new Map();
   let big = new Map();

@@ -1,47 +1,29 @@
 <template>
   <nav class="navbar navbar-default navbar-expand-lg navbar-light">
     <div class="navbar-header">
-      <a class="navbar-brand" href="#"
-        >U<b>Raaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</b></a
+      <a
+        class="navbar-brand"
+        href="#"
+        style="background-color: gray"
+        @click="home()"
       >
-      <button
-        type="button"
-        data-target="#navbarCollapse"
-        data-toggle="collapse"
-        class="navbar-toggle"
+        Main &nbsp &nbsp &nbsp &nbsp<b>HomePage</b></a
       >
-        <span class="navbar-toggler-icon"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
     </div>
-    <!-- Collection of nav links, forms, and other content for toggling -->
     <div id="navbarCollapse" class="collapse navbar-collapse">
       <ul id="login_logout" class="nav navbar-nav navbar-right">
-        <!-- false면  -->
         <li v-if="!userData.user.checked.login_check">
           <a data-toggle="dropdown" class="dropdown-toggle" href="#">Login</a>
           <ul class="dropdown-menu form-wrapper">
             <li>
               <form>
-                <!-- <p class="hint-text">Sign in with your social media account</p>
-                <div class="form-group social-btn clearfix">
-                  <a href="#" class="btn btn-primary pull-left"
-                    ><i class="fa fa-facebook"></i> Facebook</a
-                  >
-                  <a href="#" class="btn btn-info pull-right"
-                    ><i class="fa fa-twitter"></i> Twitter</a
-                  >
-                </div> -->
-                <!-- <div class="or-seperator"><b>or</b></div> -->
                 <div class="form-group">
                   <input
                     type="text"
                     class="form-control"
                     placeholder="Username"
                     required="required"
-                    v-model="userData.user.info.name"
+                    v-model="userData.formUser.info.name"
                   />
                 </div>
                 <div class="form-group">
@@ -50,7 +32,7 @@
                     class="form-control"
                     placeholder="Password"
                     required="required"
-                    v-model="userData.user.info.password"
+                    v-model="userData.formUser.info.password"
                   />
                 </div>
                 <input
@@ -67,10 +49,14 @@
           </ul>
         </li>
         <li v-else>
-          <h5>{{ userData.user.info.name }}</h5>
-          <button class="btn btn-primary btn-block" @click="logout()">
-            Logout
-          </button>
+          <router-link
+            tag="button"
+            class="btn btn-primary btn-block"
+            to="/mypage"
+            @click="my_page()"
+          >
+            {{ userData.user.info.name }}
+          </router-link>
         </li>
         <!-- false면 -->
         <li v-if="!userData.user.checked.login_check">
@@ -93,7 +79,7 @@
                     class="form-control"
                     placeholder="Email"
                     required="required"
-                    v-model="userData.user.info.email"
+                    v-model="userData.formUser.info.email"
                   />
                 </div>
                 <div class="form-group">
@@ -102,7 +88,7 @@
                     class="form-control"
                     placeholder="Username"
                     required="required"
-                    v-model="userData.user.info.name"
+                    v-model="userData.formUser.info.name"
                   />
                 </div>
                 <div class="form-group">
@@ -111,7 +97,7 @@
                     class="form-control"
                     placeholder="Password"
                     required="required"
-                    v-model="userData.user.info.password"
+                    v-model="userData.formUser.info.password"
                   />
                 </div>
                 <div class="form-group">
@@ -120,7 +106,7 @@
                     class="form-control"
                     placeholder="Confirm Password"
                     required="required"
-                    v-model="userData.user.info.confirm_password"
+                    v-model="userData.formUser.info.confirm_password"
                   />
                 </div>
                 <div class="form-group">
@@ -128,7 +114,7 @@
                     ><input
                       type="checkbox"
                       required="required"
-                      v-model="userData.user.checked.accepted"
+                      v-model="userData.formUser.checked.accepted"
                       @click="checked()"
                     />
                     I accept the <a href="#">Terms &amp; Conditions</a></label
@@ -144,17 +130,36 @@
             </li>
           </ul>
         </li>
+        <li v-else>
+          <a class="btn btn-primary btn-block" @click="logout()"> Logout </a>
+        </li>
       </ul>
     </div>
   </nav>
 </template>
 <script>
 import axios from "axios";
+import { useRouter } from "vue-router";
+
 import { reactive } from "vue";
 export default {
   setup() {
+    const router = useRouter();
     let userData = reactive({
       // userList: [],
+      formUser: {
+        info: {
+          password: "",
+          confirm_password: "",
+          name: "",
+          email: "",
+        },
+        checked: {
+          accepted: false,
+          login_check: false,
+        },
+        foundEventsId: [],
+      },
       user: {
         info: {
           password: "",
@@ -169,26 +174,42 @@ export default {
         foundEventsId: [],
       },
     });
+
+    const home = () => {
+      router.push({
+        name: "Home",
+        query: {
+          name: userData.user.info.name,
+        },
+      });
+    };
+
+    const my_page = () => {
+      router.push({
+        name: "MyPage",
+        query: {
+          name: userData.user.info.name,
+        },
+      });
+    };
     const userSet = (res) => {
-      // let test = res.data[0];
-      // console.log("test: " + JSON.stringify(test));
       console.log("res.data.login_check: " + res.data.login_check);
-      userData.user.info.name = res.data.userName;
+      if (res.data.userName !== "") {
+        userData.user.info.name = res.data.userName;
+      }
       userData.user.info.password = res.data.password;
       userData.user.info.email = res.data.email;
       userData.user.checked.accepted = res.data.accepted;
       userData.user.checked.login_check = res.data.login_check;
-
-      return userData;
     };
     /////////////////////////reset user data //////////////////////////////
-    const reset = (userData) => {
-      userData.user.checked.accepted = false; //
-      for (let i in userData.user.info) {
-        userData.user.info[i] = "";
+    const reset = (user) => {
+      user.checked.accepted = false; //
+      for (let i in user.info) {
+        user.info[i] = "";
       }
-      for (let i in userData.user.checked) {
-        userData.user.checked[i] = false;
+      for (let i in user.checked) {
+        user.checked[i] = false;
       }
     };
     const empty = () => {
@@ -209,7 +230,7 @@ export default {
     //user token check
     axios.get("/api/user").then((res) => {
       console.log("front user token check: " + JSON.stringify(res.data));
-      if (res.data && res.data.user.info && res.data.user.checked) {
+      if (res.data && res.data.user) {
         userData.user.info = res.data.user.info;
         userData.user.checked = res.data.user.checked;
         console.log(
@@ -242,8 +263,8 @@ export default {
     //logIn
     const login = () => {
       const loginUser = {
-        name: userData.user.info.name,
-        password: userData.user.info.password,
+        name: userData.formUser.info.name,
+        password: userData.formUser.info.password,
       };
       console.log("login user: " + JSON.stringify(loginUser));
       //front side check above
@@ -254,7 +275,7 @@ export default {
         if (res.data === undefined || res.data === "") {
           // if undefined or no user found checking
           alert("id or password error.");
-          reset(userData);
+          reset(userData.formUser);
           return;
         } else if (res.data === "login") {
           alert("user already login!!!");
@@ -262,7 +283,8 @@ export default {
         }
         // alert("res on login: "+JSON.stringify(res.token))
         //found user
-        userData = userSet(res);
+        console.log("login->>>>>>>>>>>>>>>>" + JSON.stringify(res.data));
+        userSet(res);
         console.log(
           "userData user in userSet login: " +
             JSON.stringify(userData.user.checked.login_check)
@@ -293,6 +315,7 @@ export default {
         return;
       }
       //check
+
       const user = userData.user;
 
       axios.post("/api/user/signup", user).then(async (res) => {
@@ -317,8 +340,11 @@ export default {
       login,
       logout,
       empty,
+      router,
       printCurrentUser,
       userSet,
+      my_page,
+      home,
     };
   },
 };
@@ -330,6 +356,9 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
 </script>
 
 <style>
+#login_ing {
+  display: flex-end;
+}
 .form-control {
   box-shadow: none;
   font-weight: normal;
@@ -401,12 +430,17 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
   color: #a0a5b1;
   font-size: 19px;
 }
+#my_page {
+  background: #4346e0;
+}
+
 .navbar .nav .btn-primary,
 .navbar .nav .btn-primary:active {
   color: #fff;
-  background: #33cabb;
+  background: #4577e4;
   padding-top: 8px;
   padding-bottom: 6px;
+  padding-left: 10px;
   vertical-align: middle;
   border: none;
 }
@@ -414,7 +448,8 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
 .navbar .nav .btn-primary:focus {
   color: #fff;
   outline: none;
-  background: #31bfb1;
+  padding-left: 10px;
+  background: #4577e4;
 }
 .navbar .navbar-right li:first-child a {
   padding-right: 30px;
