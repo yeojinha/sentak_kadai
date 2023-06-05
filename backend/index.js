@@ -124,6 +124,15 @@ const findUser = async (name, password) => {
   // console.log("findUser data: " + JSON.stringify(data));
   return data;
 };
+const loginTry = async (name, password) => {
+  //using wiht async await
+  let data = await database.run(
+    `SELECT userName,email,login_check,accepted FROM user WHERE userName = ? AND password = ?`,
+    [name, password]
+  );
+  // console.log("findUser data: " + JSON.stringify(data));
+  return data;
+};
 
 app.get("/api/user", async (req, res) => {
   // jwtKey = await getJwtKey();
@@ -145,7 +154,7 @@ app.post("/api/user/signup", async (req, res) => {
 
   console.log("req.body.info.name-> " + req.body.info.name);
   console.log("-----------");
-  let userData = await findUser(req.body.info.name, req.body.info.password);
+  let userData = await loginTry(req.body.info.name, req.body.info.password);
 
   // console.log("userData " + JSON.stringify(userData));
   console.log(
@@ -166,7 +175,7 @@ app.post("/api/user/signup", async (req, res) => {
       `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
       [req.body.info.name, req.body.info.email, req.body.info.password]
     );
-    userData = await findUser(req.body.info.name, req.body.info.password);
+    userData = await loginTry(req.body.info.name, req.body.info.password);
     console.log("sign up ID check from db: " + userData);
     console.log(
       "back----------> " +

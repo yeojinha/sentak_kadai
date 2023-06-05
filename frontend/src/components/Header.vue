@@ -222,14 +222,10 @@ export default {
     /////////////////////-------------------------//////////////////////////
 
     //user token check
-    axios.get("/api/user").then((res) => {
-      console.log("front user token check: " + JSON.stringify(res.data));
-      if (res.data && res.data.user) {
-        userData.user.info = res.data.user.info;
-        userData.user.checked = res.data.user.checked;
-        console.log(
-          "inside front user token check: " + JSON.stringify(userData.user)
-        );
+    axios.get("/api/user").then(async (res) => {
+      if (res.data) {
+        userData.user.info = await res.data.user.info;
+        userData.user.checked = await res.data.user.checked;
       } else {
         console.log("no login now");
       }
@@ -262,7 +258,7 @@ export default {
       };
       console.log("login user: " + JSON.stringify(loginUser));
       //front side check above
-      axios.post("/api/user/login", loginUser).then((res) => {
+      axios.post("/api/user/login", loginUser).then(async (res) => {
         console.log(
           "login  foundJoinEventsId check: " + JSON.stringify(res.data)
         );
@@ -278,10 +274,10 @@ export default {
         // alert("res on login: "+JSON.stringify(res.token))
         //found user
         console.log("login->>>>>>>>>>>>>>>>" + JSON.stringify(res.data));
-        userSet(res);
+        await userSet(res);
         console.log(
-          "userData user in userSet login: " +
-            JSON.stringify(userData.user.checked.login_check)
+          "userData user info username: " +
+            JSON.stringify(userData.user.info.name)
         );
 
         window.location.reload();
@@ -290,9 +286,6 @@ export default {
     //logIn
     //signUp
     const signUp = () => {
-      console.log(
-        "first accepted check: " + userData.formUser.checked.accepted
-      );
       //check
       for (let i in userData.formUser) {
         if (userData.formUser.info[i] === "") {
@@ -324,9 +317,8 @@ export default {
           //if no res data
           alert("The ID already exists.");
         } else {
-          userData = await userSet(res);
-          console.log("last accepted check: " + userData.user.checked.accepted);
-          reset(userData);
+          await userSet(res);
+          reset(userData.formUser);
         }
       });
     };
