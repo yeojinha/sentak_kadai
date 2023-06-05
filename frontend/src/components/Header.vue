@@ -178,18 +178,12 @@ export default {
     const home = () => {
       router.push({
         name: "Home",
-        query: {
-          name: userData.user.info.name,
-        },
       });
     };
 
     const my_page = () => {
       router.push({
         name: "MyPage",
-        query: {
-          name: userData.user.info.name,
-        },
       });
     };
     const userSet = (res) => {
@@ -296,27 +290,32 @@ export default {
     //logIn
     //signUp
     const signUp = () => {
-      console.log("first accepted check: " + userData.user.checked.accepted);
+      console.log(
+        "first accepted check: " + userData.formUser.checked.accepted
+      );
       //check
-      for (let i in userData.user) {
-        if (userData.user.info[i] === "") {
-          console.log(`userData.user[${i}]: ${userData.user.info[i]}`);
-          reset(userData);
+      for (let i in userData.formUser) {
+        if (userData.formUser.info[i] === "") {
+          console.log(`userData.user[${i}]: ${userData.formUser.info[i]}`);
+          reset(userData.formUser);
           return;
         }
       }
-      if (userData.user.info.password !== userData.user.info.confirm_password) {
+      if (
+        userData.formUser.info.password !==
+        userData.formUser.info.confirm_password
+      ) {
         // reset(userData);
         alert("Wrong password");
         return;
       }
-      if (userData.user.checked.accepted === false) {
+      if (userData.formUser.checked.accepted === false) {
         // reset(userData);
         return;
       }
       //check
 
-      const user = userData.user;
+      const user = userData.formUser;
 
       axios.post("/api/user/signup", user).then(async (res) => {
         console.log("singUp: " + JSON.stringify(res.data));

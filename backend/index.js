@@ -135,9 +135,6 @@ app.get("/api/user", async (req, res) => {
     console.log("DECODE: " + JSON.stringify(decoded));
     res.send(decoded);
   } else {
-    console.log(
-      "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
-    );
     res.send();
   }
 });

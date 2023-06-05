@@ -16,6 +16,15 @@ const routes = [
     name: "MyPage",
     component: () => import("./MyPage.vue"),
   },
+  {
+    path: "/notfound",
+    name: "NotFound",
+    component: () => import("./NotFound.vue"),
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect:"/notfound"
+  }
 ];
 
 const router = createRouter({

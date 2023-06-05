@@ -50,9 +50,9 @@
                     <button
                       type="button"
                       class="btn btn-primary"
-                      @click="addItem"
+                      @click="editItem"
                     >
-                      Add
+                      edit
                     </button>
                   </router-link>
                 </div>
@@ -67,13 +67,15 @@
 </template>
 
 <script>
-import { useRoute } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
+
 import { reactive, toRefs } from "vue";
 import axios from "axios";
 
 export default {
   setup() {
     // const router = useRouter();
+    const router = useRouter();
     const route = useRoute();
     const state = reactive({
       confirm: "",
@@ -92,7 +94,7 @@ export default {
         state.limit = "";
       }
     };
-    const addItem = () => {
+    const editItem = () => {
       state.confirm = window.confirm("Do you want to edit??");
       if (state.confirm) {
         axios
@@ -108,10 +110,30 @@ export default {
       }
     };
 
+    const directToError = () => {
+      router.push({ path: "/notfound" });
+    };
+    axios.get("/api/user").then((res) => {
+      console.log("route.query: " + JSON.stringify(route.query));
+      console.log("route.query: " + Object.keys(route.query).length);
+      if (Object.keys(route.query).length <= 0) {
+        //no query data
+        directToError();
+      }
+      if (!res.data) {
+        directToError();
+      }
+      if (res.data) {
+        console.log(res.data);
+      }
+    });
+
     return {
       state,
-      addItem,
+      editItem,
       handleInput,
+      router,
+      directToError,
     };
   },
 };
