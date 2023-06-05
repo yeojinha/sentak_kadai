@@ -38,3 +38,7 @@
  
 
 refresh token이 만료되었다면 해당 refresh token을 db에서 제거하고 401 응답을 보내 재 로그인 하도록 한다.
+
+
+
+https://donologue.tistory.com/397
