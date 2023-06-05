@@ -47,3 +47,38 @@ https://cotak.tistory.com/102
 
 
 middleware to verify access token.
+
+
+
+
+
+
+
+const newMemberMail = (information) =>{
+  let transporterMinors = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: MAILS_EMAIL,
+      pass: MAILS_PASS,
+    },
+  });
+
+  let mailOptions = {
+    from: "sentakuhayeojin@gmail.com",
+    to: information.email,//master email
+    subject: info.title, // matster's room
+    text: info.content,// participant's email
+  };
+
+  transporterMinors.sendMail(mailOptions, function (err, info) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(info);
+    }
+  });
+
+
+}
+
+module.exports = { sendMailMaster, sendMailMinors,newMemberMail };
