@@ -190,6 +190,9 @@ export default {
       console.log("res.data.login_check: " + res.data.login_check);
       if (res.data.userName !== "") {
         userData.user.info.name = res.data.userName;
+        console.log(
+          "userData user info username on userSet: " + userData.user.info.name
+        );
       }
       userData.user.info.password = res.data.password;
       userData.user.info.email = res.data.email;
@@ -223,6 +226,10 @@ export default {
 
     //user token check
     axios.get("/api/user").then(async (res) => {
+      console.log(
+        "userData user info username on api/user: " +
+          JSON.stringify(userData.user.info.name)
+      );
       if (res.data) {
         userData.user.info = await res.data.user.info;
         userData.user.checked = await res.data.user.checked;
@@ -280,7 +287,7 @@ export default {
             JSON.stringify(userData.user.info.name)
         );
 
-        window.location.reload();
+        // window.location.reload();
       });
     };
     //logIn
