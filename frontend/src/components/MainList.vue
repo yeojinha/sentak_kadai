@@ -320,6 +320,7 @@ export default {
         //user data, event id
         name: state.userName,
         id: state.targetItem.id,
+        title: state.targetItem.title,
       };
       if (state.userName === "") {
         //2
@@ -423,8 +424,8 @@ export default {
       console.log("add formData-> " + JSON.stringify(formData));
       axios
         .post("/api/todolist/add", formData)
-        .then((res) => {
-          state.list = res.data;
+        .then(async (res) => {
+          state.list = await res.data;
           console.log("res.data by post: " + JSON.stringify(res.data));
         })
         .catch((err) => {
@@ -443,7 +444,7 @@ export default {
           // state.userName = "";
           //clear input
         });
-      window.location.reload(); //refresh cuz button doesn't refresh itself
+      // window.location.reload(); //refresh cuz button doesn't refresh itself
     };
 
     const hideCardBody = async (id) => {

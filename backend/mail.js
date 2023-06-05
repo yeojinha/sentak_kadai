@@ -16,7 +16,7 @@ const sendMailMaster = (information) => {
     //map key, value(list)
     for (let content of contentList) {
       let mailOptions = {
-        from: "hayeojin4966@gmail.com",
+        from: "sentakuhayeojin@gmail.com",
         to: email,
         subject:
           "Participant Recruitment and Update on Current Enrollment Status",
@@ -77,7 +77,32 @@ const sendMailMinors = (information) => {
   });
 };
 
-module.exports = { sendMailMaster, sendMailMinors };
+const newMemberMail = (information) => {
+  let transporterMinors = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: MAILS_EMAIL,
+      pass: MAILS_PASS,
+    },
+  });
+
+  let mailOptions = {
+    from: "sentakuhayeojin@gmail.com",
+    to: information.email, //master email
+    subject: info.title, // matster's room
+    text: info.content, // participant's email
+  };
+
+  transporterMinors.sendMail(mailOptions, function (err, info) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log(info);
+    }
+  });
+};
+
+module.exports = { sendMailMaster, sendMailMinors, newMemberMail };
 // const sendMailMaster = (information) => {
 //   let transporterMaster = nodemailer.createTransport({
 //     service: "gmail",
