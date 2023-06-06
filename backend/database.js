@@ -1,8 +1,12 @@
 const mariadb = require("mariadb");
 const pool = mariadb.createPool({
-  host: "127.0.0.1",
-  user: "root",
-  password: "4966",
+  // sentaku.cpa30qpcmbnd.ap-northeast-1.rds.amazonaws.com
+  // host: "127.0.0.1",
+  host: "sentaku.cpa30qpcmbnd.ap-northeast-1.rds.amazonaws.com",
+  // user: "root",
+  user: "admin",
+  // password: "4966",
+  password: "hahooho4966",
   connectionLimit: 5,
   database: "sentaku",
 });
