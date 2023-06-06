@@ -146,7 +146,8 @@ const loginTry = async (name, password) => {
 };
 
 app.get("/api/user", async (req, res) => {
-  // jwtKey = await getJwtKey();
+  // jwtKey = await getJwtKey();tempDBclear();
+  tempDBclear();
   if (req.cookies && req.cookies.token) {
     console.log(
       "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
@@ -164,7 +165,7 @@ app.get("/api/user/verify-email", async (req, res) => {
   console.log("token: " + token);
 
   console.log("email: " + email);
-  const time = new Date().getMilliseconds();
+  const time = new Date().getTime();
   const foundToken = await database.run(
     `SELECT * FROM tempuser WHERE crytoToken = ?`,
     [token]
@@ -485,7 +486,18 @@ const mailSystem = schedule.scheduleJob("0 0 17 * * *", async () => {
   }
   sendMailMaster(big);
 });
-
+const tempDBclear = async () => {
+  const time = new Date().getTime();
+  console.log("tempDBclear in on");
+  const listOfTempUser = await database.run(`SELECT * FROM tempuser`);
+  for (let el of listOfTempUser) {
+    if (time >= el.expiration) {
+      await database.run(`DELETE FROM tempuser WHERE crytoToken`, [
+        el.crytoToken,
+      ]); //해당 데이터 삭제
+    }
+  }
+};
 //----------------------------------------------------------mail mail ------------------------------------------------------------------------
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);

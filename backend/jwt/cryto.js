@@ -2,7 +2,7 @@
 const crypto = require("crypto");
 const generateEmailCrytoForAuth = () => {
   const token = crypto.randomBytes(20).toString("hex");
-  const time = new Date().getMilliseconds() + 7200;
+  const time = new Date().getTime() + 7200000;
   const expire = expiration();
   return { token, time, expire };
 };
