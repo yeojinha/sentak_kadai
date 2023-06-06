@@ -1,5 +1,5 @@
 const express = require("express");
-const { sendMailMaster, newMemberMail } = require("./mail");
+const { sendMailMaster, newMemberMail, emailAuth } = require("./mail");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -8,13 +8,13 @@ const schedule = require("node-schedule");
 const database = require("./database");
 const jwt = require("./jwt/token");
 
-const authJwt = require("./jwt/authJWT");
+const { generateEmailCrytoForAuth } = require("./jwt/cryto");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
 const port = 3000;
-
+let token = null;
 const data = {
   list: [],
   user: {},
@@ -146,7 +146,8 @@ const loginTry = async (name, password) => {
 };
 
 app.get("/api/user", async (req, res) => {
-  // jwtKey = await getJwtKey();
+  // jwtKey = await getJwtKey();tempDBclear();
+  tempDBclear();
   if (req.cookies && req.cookies.token) {
     console.log(
       "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
@@ -158,9 +159,59 @@ app.get("/api/user", async (req, res) => {
     res.send();
   }
 });
+app.get("/api/user/verify-email", async (req, res) => {
+  const email = req.query.email;
+  const token = req.query.token;
+  console.log("token: " + token);
 
+  console.log("email: " + email);
+  const time = new Date().getTime();
+  const foundToken = await database.run(
+    `SELECT * FROM tempuser WHERE crytoToken = ?`,
+    [token]
+  );
+  ///expire check
+  if (foundToken.length <= 0) {
+    alert("token expired!");
+    return;
+  }
+  console.log("expiration check: " + time);
+  console.log("foundToken[0].expiration: " + foundToken[0].expiration);
+  let foundUser = null;
+  if (foundToken[0].expiration >= time) {
+    //유효기간 만료 X
+    foundUser = await database.run(
+      `SELECT userName, email, password FROM tempuser WHERE email = ?`,
+      [email]
+    );
+    await database.run(
+      `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
+      [foundUser[0].userName, foundUser[0].email, foundUser[0].password]
+    );
+  } else if (foundToken[0].expiration < time) {
+    res.sendStatus(400);
+    console.log(
+      "foundToken[0].expiration < time: " + foundToken[0].expiration < time
+    );
+  } //유효기간 만료 O
+
+  console.log(
+    "back----------> " +
+      JSON.stringify(await database.run("SELECT * FROM user"))
+  );
+  // alert("Welcome!!! Your account has been verified.");
+  res.redirect("http://localhost:8080/");
+});
 //signup
 app.post("/api/user/signup", async (req, res) => {
+  //tempDB_table에 임시유저와 비밀번호 그리고 인증번호를 입력하고
+  //전송한 인증코드를 비교하기,.
+  // 인증번호는 db와 함께 비교하기.
+  /**
+   * 1. 특정링크와 함께 인증코드 전송 혹은 특정링크에 인증코드 param으로 함께 전송
+   * 2. 인증코드 포함이면 form에 입력하거 submit -> db에 유저 정보 post -> redirect to '/home'
+   * 3. param으로 전송하면 2번과 같이 db에 유저 정보 post -> redirect to '/home'
+   */
   console.log("singup: " + JSON.stringify(req.body));
 
   console.log("req.body.info.name-> " + req.body.info.name);
@@ -177,24 +228,36 @@ app.post("/api/user/signup", async (req, res) => {
 
   if (userData.length > 0) {
     //if already userName is in the list
-    console.log("user name or email");
+    console.log("user name or email ");
     res.send();
   } else {
     //no same userName
     // userList.push(userData); // change to sql ->
+    result = await generateEmailCrytoForAuth();
+    // const tik_tok = await expiration();//현재시간 + 2시간
+    console.log("time: " + result.time);
     await database.run(
-      `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
-      [req.body.info.name, req.body.info.email, req.body.info.password]
+      `INSERT INTO tempuser (userName,email,password,crytoToken,expiration) VALUES(?,?,?,?,?)`,
+      [
+        req.body.info.name,
+        req.body.info.email,
+        req.body.info.password,
+        result.token,
+        result.time,
+      ]
     );
-    userData = await loginTry(req.body.info.name, req.body.info.password);
-    console.log("sign up ID check from db: " + userData);
-    console.log(
-      "back----------> " +
-        JSON.stringify(await database.run("SELECT * FROM user;"))
-    );
-    res.send(userData);
+    emailAuth(req.body.info.email, result.token, result.expire);
+    // userData = await loginTry(req.body.info.name, req.body.info.password);
+    // console.log("sign up ID check from db: " + userData);
+    // console.log(
+    //   "back----------> " +
+    //     JSON.stringify(await database.run("SELECT * FROM user;"))
+    // );
+    // res.send(userData);
   }
 });
+///////////////////
+
 // Login Logout
 //Login
 app.post("/api/user/login", async (req, res) => {
@@ -423,7 +486,18 @@ const mailSystem = schedule.scheduleJob("0 0 17 * * *", async () => {
   }
   sendMailMaster(big);
 });
-
+const tempDBclear = async () => {
+  const time = new Date().getTime();
+  console.log("tempDBclear in on");
+  const listOfTempUser = await database.run(`SELECT * FROM tempuser`);
+  for (let el of listOfTempUser) {
+    if (time >= el.expiration) {
+      await database.run(`DELETE FROM tempuser WHERE crytoToken`, [
+        el.crytoToken,
+      ]); //해당 데이터 삭제
+    }
+  }
+};
 //----------------------------------------------------------mail mail ------------------------------------------------------------------------
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
