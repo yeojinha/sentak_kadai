@@ -13,7 +13,7 @@
     <div id="navbarCollapse" class="collapse navbar-collapse">
       <ul id="login_logout" class="nav navbar-nav navbar-right">
         <li v-if="!userData.user.checked.login_check">
-          <a data-toggle="dropdown" class="dropdown-toggle" href="#">Login</a>
+          <a data-toggle="dropdown" class="dropdown-toggle" href="#">Sign In</a>
           <ul class="dropdown-menu form-wrapper">
             <li>
               <form>
@@ -75,7 +75,7 @@
                 </p>
                 <div class="form-group">
                   <input
-                    type="text"
+                    type="email"
                     class="form-control"
                     placeholder="Email"
                     required="required"
@@ -147,7 +147,7 @@ export default {
     const router = useRouter();
     const route = useRoute();
     let userData = reactive({
-      // userList: [],
+      reg: /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
       formUser: {
         info: {
           password: "",
@@ -175,7 +175,9 @@ export default {
         foundEventsId: [],
       },
     });
-
+    const isEmailValid = (email) => {
+      return email == "" ? "" : userData.reg.test(email) ? true : false;
+    };
     const home = () => {
       router.push({
         name: "Home",
@@ -242,6 +244,8 @@ export default {
         );
       } else {
         console.log("no login now");
+        userData.user.info = {};
+        userData.user.checked = {};
       }
     });
 
@@ -308,6 +312,10 @@ export default {
           reset(userData.formUser);
           return;
         }
+      }
+      if (!isEmailValid(userData.formUser.info.email)) {
+        alert("Wrong Email");
+        return;
       }
       if (
         userData.formUser.info.password !==
