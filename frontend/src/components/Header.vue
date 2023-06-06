@@ -139,12 +139,13 @@
 </template>
 <script>
 import axios from "axios";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 
 import { reactive } from "vue";
 export default {
   setup() {
     const router = useRouter();
+    const route = useRoute();
     let userData = reactive({
       // userList: [],
       formUser: {
@@ -164,12 +165,12 @@ export default {
         info: {
           password: "",
           confirm_password: "",
-          name: "",
-          email: "",
+          name: route.query.userName || "",
+          email: route.query.email || "",
         },
         checked: {
-          accepted: false,
-          login_check: false,
+          accepted: route.query.accepted || false,
+          login_check: route.query.login_check || false,
         },
         foundEventsId: [],
       },
@@ -178,23 +179,31 @@ export default {
     const home = () => {
       router.push({
         name: "Home",
+        userName: userData.user.info.name,
+        email: userData.user.info.email,
+        accepted: userData.user.checked.accepted,
+        login_check: userData.user.checked.login_check,
       });
     };
 
     const my_page = () => {
       router.push({
         name: "MyPage",
+        query: {
+          accepted: userData.user.checked.accepted,
+          login_check: userData.user.checked.login_check,
+        },
       });
     };
     const userSet = (res) => {
-      console.log("res.data.login_check: " + res.data.login_check);
-      if (res.data.userName !== "") {
+      console.log("res.data.login_check: " + JSON.stringify(res.data));
+      if (res.data.userName) {
         userData.user.info.name = res.data.userName;
+        userData.user.info.email = res.data.email;
+        userData.user.checked.accepted = res.data.accepted;
+        userData.user.checked.login_check = true;
       }
-      userData.user.info.password = res.data.password;
-      userData.user.info.email = res.data.email;
-      userData.user.checked.accepted = res.data.accepted;
-      userData.user.checked.login_check = res.data.login_check;
+      // userData.user.info.password = res.data.user.info.password;
     };
     /////////////////////////reset user data //////////////////////////////
     const reset = (user) => {
@@ -222,7 +231,8 @@ export default {
     /////////////////////-------------------------//////////////////////////
 
     //user token check
-    axios.get("/api/user").then((res) => {
+    axios.get("/api/user").then(async (res) => {
+      console.log("front user api/user: " + JSON.stringify(userData.user));
       console.log("front user token check: " + JSON.stringify(res.data));
       if (res.data && res.data.user) {
         userData.user.info = res.data.user.info;
@@ -262,11 +272,11 @@ export default {
       };
       console.log("login user: " + JSON.stringify(loginUser));
       //front side check above
-      axios.post("/api/user/login", loginUser).then((res) => {
+      axios.post("/api/user/login", loginUser).then(async (res) => {
         console.log(
           "login  foundJoinEventsId check: " + JSON.stringify(res.data)
         );
-        if (res.data === undefined || res.data === "") {
+        if (!res.data === undefined || res.data === "") {
           // if undefined or no user found checking
           alert("id or password error.");
           reset(userData.formUser);
@@ -278,12 +288,10 @@ export default {
         // alert("res on login: "+JSON.stringify(res.token))
         //found user
         console.log("login->>>>>>>>>>>>>>>>" + JSON.stringify(res.data));
-        userSet(res);
+        await userSet(res);
         console.log(
-          "userData user in userSet login: " +
-            JSON.stringify(userData.user.checked.login_check)
+          "userData user in userSet login: " + JSON.stringify(userData.user)
         );
-
         window.location.reload();
       });
     };
@@ -323,10 +331,10 @@ export default {
         if (!res.data) {
           //if no res data
           alert("The ID already exists.");
+          return;
         } else {
-          userData = await userSet(res);
-          console.log("last accepted check: " + userData.user.checked.accepted);
-          reset(userData);
+          alert("가입성공");
+          reset(userData.formUser);
         }
       });
     };

@@ -321,6 +321,7 @@ export default {
         name: state.userName,
         id: state.targetItem.id,
         title: state.targetItem.title,
+        email: state.targetItem.email,
       };
       if (state.userName === "") {
         //2
@@ -479,7 +480,7 @@ export default {
           .then((res) => {
             state.list = res.data.list;
 
-            console.log("state length: " + state.list.length);
+            console.log("res.data.list: " + JSON.stringify(res.data.list));
             for (let i = 0; i < state.list.length; i++) {
               state.list[i].hasJoined = false;
               for (let j = 0; j < res.data.userJoinEventsId.length; j++) {

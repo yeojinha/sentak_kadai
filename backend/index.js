@@ -1,5 +1,5 @@
 const express = require("express");
-const { sendMailMaster, sendMailMinors } = require("./mail");
+const { sendMailMaster, newMemberMail } = require("./mail");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -63,7 +63,17 @@ app.put("/api/todolist/participants_events", async (req, res) => {
     numberOf--;
     console.log("in the event numberOfPar check: " + numberOf);
   } else {
-    console.log("temp is not in this evnet");
+    const content = await database.run(
+      `SELECT email FROM user WHERE userName =?`,
+      [req.body.name]
+    );
+
+    let info = {
+      email: req.body.email,
+      title: req.body.title,
+      content: content[0].email,
+    };
+    console.log("temp is not in this event");
     //new participant
     //이벤트에 신규 참여할 유저
     numberOf++;
@@ -77,6 +87,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       `INSERT IGNORE INTO participants_events_history (userName, id) VALUES(?,?)`,
       [req.body.name, req.body.id] //ignore the data is already on the table;
     );
+    newMemberMail(info);
   }
   await database.run(`UPDATE contents SET participants=? WHERE id=?`, [
     numberOf.toString(),
@@ -94,7 +105,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   };
 
   console.log(
-    "bakc index.js data userJoinEventsId : " +
+    "back index.js data userJoinEventsId : " +
       JSON.stringify(data.userJoinEventsId)
   );
   console.log(
@@ -124,6 +135,15 @@ const findUser = async (name, password) => {
   // console.log("findUser data: " + JSON.stringify(data));
   return data;
 };
+const loginTry = async (name, password) => {
+  //using wiht async await
+  let data = await database.run(
+    `SELECT userName,email,login_check,accepted FROM user WHERE userName = ? AND password = ?`,
+    [name, password]
+  );
+  // console.log("findUser data: " + JSON.stringify(data));
+  return data;
+};
 
 app.get("/api/user", async (req, res) => {
   // jwtKey = await getJwtKey();
@@ -145,7 +165,7 @@ app.post("/api/user/signup", async (req, res) => {
 
   console.log("req.body.info.name-> " + req.body.info.name);
   console.log("-----------");
-  let userData = await findUser(req.body.info.name, req.body.info.password);
+  let userData = await loginTry(req.body.info.name, req.body.info.password);
 
   // console.log("userData " + JSON.stringify(userData));
   console.log(
@@ -166,7 +186,7 @@ app.post("/api/user/signup", async (req, res) => {
       `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
       [req.body.info.name, req.body.info.email, req.body.info.password]
     );
-    userData = await findUser(req.body.info.name, req.body.info.password);
+    userData = await loginTry(req.body.info.name, req.body.info.password);
     console.log("sign up ID check from db: " + userData);
     console.log(
       "back----------> " +
@@ -324,7 +344,7 @@ app.get("/api/todolist/show_special", async (req, res) => {
   console.log("show_special: " + JSON.stringify(req.query.userName));
 
   data.list = await database.run(
-    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+    "SELECT id, title, content, createdAt, userName, participants, email, `limit` FROM contents"
   );
   data.userJoinEventsId = await database.run(
     `SELECT id FROM participants_events WHERE userName =?`,
@@ -339,7 +359,7 @@ app.get("/api/todolist/show_special", async (req, res) => {
 
 app.get("/api/todolist/show", async (req, res) => {
   data.list = await database.run(
-    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+    "SELECT id, title, content, createdAt, userName, participants,email, `limit` FROM contents"
   );
   res.send(data);
 });
