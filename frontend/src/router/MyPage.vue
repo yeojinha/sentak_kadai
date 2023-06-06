@@ -280,9 +280,6 @@ import { useRouter } from "vue-router";
 import { reactive, toRefs } from "vue";
 import Header from "../components/Header.vue";
 import axios from "axios";
-import MainList from "@/components/MainList.vue";
-import { setMaxListeners } from "events";
-
 export default {
   components: {
     Header,

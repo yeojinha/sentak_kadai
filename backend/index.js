@@ -1,5 +1,5 @@
 const express = require("express");
-const { sendMailMaster, sendMailMinors } = require("./mail");
+const { sendMailMaster, newMemberMail } = require("./mail");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -63,7 +63,17 @@ app.put("/api/todolist/participants_events", async (req, res) => {
     numberOf--;
     console.log("in the event numberOfPar check: " + numberOf);
   } else {
-    console.log("temp is not in this evnet");
+    const content = await database.run(
+      `SELECT email FROM user WHERE userName =?`,
+      [req.body.name]
+    );
+
+    let info = {
+      email: req.body.email,
+      title: req.body.title,
+      content: content[0].email,
+    };
+    console.log("temp is not in this event");
     //new participant
     //이벤트에 신규 참여할 유저
     numberOf++;
@@ -77,6 +87,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
       `INSERT IGNORE INTO participants_events_history (userName, id) VALUES(?,?)`,
       [req.body.name, req.body.id] //ignore the data is already on the table;
     );
+    newMemberMail(info);
   }
   await database.run(`UPDATE contents SET participants=? WHERE id=?`, [
     numberOf.toString(),
@@ -94,7 +105,7 @@ app.put("/api/todolist/participants_events", async (req, res) => {
   };
 
   console.log(
-    "bakc index.js data userJoinEventsId : " +
+    "back index.js data userJoinEventsId : " +
       JSON.stringify(data.userJoinEventsId)
   );
   console.log(
@@ -333,7 +344,7 @@ app.get("/api/todolist/show_special", async (req, res) => {
   console.log("show_special: " + JSON.stringify(req.query.userName));
 
   data.list = await database.run(
-    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+    "SELECT id, title, content, createdAt, userName, participants, email, `limit` FROM contents"
   );
   data.userJoinEventsId = await database.run(
     `SELECT id FROM participants_events WHERE userName =?`,
@@ -348,7 +359,7 @@ app.get("/api/todolist/show_special", async (req, res) => {
 
 app.get("/api/todolist/show", async (req, res) => {
   data.list = await database.run(
-    "SELECT id, title, content, createdAt, userName, participants, `limit` FROM contents"
+    "SELECT id, title, content, createdAt, userName, participants,email, `limit` FROM contents"
   );
   res.send(data);
 });
