@@ -3,12 +3,15 @@ const crypto = require("crypto");
 const generateEmailCrytoForAuth = () => {
   const token = crypto.randomBytes(20).toString("hex");
   const time = new Date().getTime() + 7200000;
+  // const time = new Date().getTime() + 60000;//1m later 
   const expire = expiration();
   return { token, time, expire };
 };
 const expiration = () => {
   const expires = new Date();
-  expires.setHours(expires.getHours() + 24); //expire after a day;
+  expires.setHours(expires.getHours() + 2); //expire after 2h later expired;
+    // expires.setMinutes(expires.getMinutes() + 1); //expire after 2h later expired;
+
   return expires;
 };
 // const authJWT = (req, res, next) => {
