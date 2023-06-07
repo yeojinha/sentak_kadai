@@ -4,16 +4,16 @@
       <a
         class="navbar-brand"
         href="#"
-        style="background-color: gray"
+        style="color:mediumseagreen"
         @click="home()"
       >
-        Main &nbsp &nbsp &nbsp &nbsp<b>HomePage</b></a
+        Main &nbsp &nbsp &nbsp &nbsp<b   style="color:mediumseagreen">HomePage</b></a
       >
     </div>
-    <div id="navbarCollapse" class="collapse navbar-collapse">
+    <div id="navbarCollapse"   style="color:mediumseagreen" class="collapse navbar-collapse">
       <ul id="login_logout" class="nav navbar-nav navbar-right">
         <li v-if="!userData.user.checked.login_check">
-          <a data-toggle="dropdown" class="dropdown-toggle" href="#">Sign In</a>
+          <a data-toggle="dropdown" class="btn btn-primary dropdown-toggle get-started-btn mt-1 mb-1" href="#">Sign In</a>
           <ul class="dropdown-menu form-wrapper">
             <li>
               <form>
@@ -38,6 +38,7 @@
                 <input
                   type="submit"
                   class="btn btn-primary btn-block"
+                  style="background-color:mediumseagreen"
                   value="Login"
                   @click.prevent="login()"
                 />
@@ -123,6 +124,7 @@
                 <input
                   type="submit"
                   class="btn btn-primary btn-block"
+                  
                   value="Sign up"
                   @click="signUp()"
                 />
@@ -131,7 +133,7 @@
           </ul>
         </li>
         <li v-else>
-          <a class="btn btn-primary btn-block" @click="logout()"> Logout </a>
+          <a class="btn btn-primary btn-block" @click="logout()"> Sign out </a>
         </li>
       </ul>
     </div>
@@ -332,7 +334,7 @@ export default {
       //check
 
       const user = userData.formUser;
-
+      alert("verification email sent to your email");
       axios.post("/api/user/signup", user).then(async (res) => {
         console.log("singUp: " + JSON.stringify(res.data));
         //singUp: [{"userName":"yaya","email":"yaya","password":"yaya","login_check":"false","accepted":"true"}]
@@ -341,7 +343,7 @@ export default {
           alert("The ID already exists.");
           return;
         } else {
-          alert("가입성공");
+          // alert("가입성공");
           reset(userData.formUser);
         }
       });
@@ -452,7 +454,7 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
 .navbar .nav .btn-primary,
 .navbar .nav .btn-primary:active {
   color: #fff;
-  background: #4577e4;
+  background: mediumseagreen;
   padding-top: 8px;
   padding-bottom: 6px;
   padding-left: 10px;
@@ -464,7 +466,7 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
   color: #fff;
   outline: none;
   padding-left: 10px;
-  background: #4577e4;
+  background: mediumseagreen;
 }
 .navbar .navbar-right li:first-child a {
   padding-right: 30px;
@@ -540,13 +542,13 @@ $(document).on("click", ".navbar-right .dropdown-menu", function (e) {
   text-decoration: none;
 }
 .navbar .social-btn .btn-primary {
-  background: #507cc0;
+  background: mediumseagreen;
 }
 .navbar .social-btn .btn-primary:hover {
-  background: #4676bd;
+  background: mediumseagreen;
 }
 .navbar .social-btn .btn-info {
-  background: #64ccf1;
+  background: mediumseagreen;
 }
 .navbar .social-btn .btn-info:hover {
   background: #4ec7ef;
