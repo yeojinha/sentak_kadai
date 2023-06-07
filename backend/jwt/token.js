@@ -1,9 +1,11 @@
 const jwt = require("jsonwebtoken");
 const database = require("../database");
 
+// jwtKey =abc1234567;
 module.exports = {
   getJwtKey: async () => {
     const result = await database.run(`SELECT * FROM jwtKey`);
+    console.log("result token:" +  result[0].jwtKey.toString());
     if (result && result.length > 0) {
       return result[0].jwtKey.toString(); // Convert jwtKey to a string
     } else {
