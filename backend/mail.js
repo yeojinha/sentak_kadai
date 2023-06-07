@@ -85,7 +85,7 @@ const newMemberMail = (info) => {
     subject: info.title, // master's room
     html: `<h4><p>Participant email: ${info.content}</p></h4><br>`, // participant's email
   };
-
+ 
   transporterMinors.sendMail(mailOptions, function (err, info) {
     if (err) {
       console.log(err);
