@@ -10,8 +10,8 @@
           >
             <div class="card-body py-4 px-4 px-md-5">
               <p class="h1 text-center mt-3 mb-4 pb-3 text-primary">
-                <i class="fas fa-check-square me-1"></i>
-                <u>JOIN CHALLENGE</u>
+                <i class="fas fa-check-square me-1" style="color: rgb(30, 129, 75)"></i>
+                <u style="color: mediumseagreen">JOIN CHALLENGE</u>
               </p>
               <!-- add challenge -->
               <form>
@@ -60,6 +60,8 @@
                   ><button
                     type="button"
                     class="btn btn-primary"
+                    style="color: mediumseagreen"
+                    
                     @click="addItem()"
                   >
                     POST
@@ -70,7 +72,7 @@
 
               <hr class="my-4" />
 
-              <div
+              <!-- <div
                 class="d-flex justify-content-end align-items-center mb-4 pt-2 pb-3"
               >
                 <p class="small mb-0 me-2 text-muted">Filter</p>
@@ -91,7 +93,7 @@
                   title="Ascending"
                   ><i class="fas fa-sort-amount-down-alt ms-2"></i
                 ></a>
-              </div>
+              </div> -->
               <!--  ul Challenge List -->
               <div>
                 <div class="card" v-for="item in state.list" :key="item.id">
@@ -109,6 +111,7 @@
                             :data-target="'#collapseOne-' + item.id"
                             aria-expanded="false"
                             :aria-controls="'collapseOne-' + item.id"
+                            style="color: mediumseagreen"
                             @click="hideCardBody(item.id)"
                           >
                             <h4>{{ item.title }}</h4>
@@ -157,6 +160,7 @@
                             role="button"
                             data-mdb-toggle="tooltip"
                             title="Edit todo"
+                            
                             @click="editItem(item)"
                           >
                             <router-link
@@ -170,7 +174,7 @@
                                 },
                               }"
                             >
-                              <i class="fas fa-pencil-alt"></i>
+                              <i class="fas fa-pencil-alt"   style="color: mediumseagreen"></i>
                             </router-link>
                           </button>
                           <button
@@ -418,6 +422,10 @@ export default {
         alert("Plz Login first!");
         return;
       }
+      if(state.formData.title.length<=5){
+        alert("state.formData.title.length<=5");
+        return;
+      }
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
       state.formData.userName = state.userName;
@@ -515,20 +523,88 @@ export default {
 };
 </script>
 
+
 <style lang="scss">
 #list1 .form-control {
   border-color: transparent;
 }
 #list1 .form-control:focus {
-  border-color: transparent;
+  //when input textarea
+  border-color: rgb(20, 180, 92);
   box-shadow: none;
 }
+
 #list1 .select-input.form-control[readonly]:not([disabled]) {
-  background-color: #fbfbfb;
+  background-color: black;
 }
+
 .hide {
-  visibility: hidden;
+  visibility: visible;
 }
+
+// <button class="button-11" role="button">Button 11</button>
+
+/* CSS */
+
+.form-group {
+  font-size: 20px;
+  height: 150%
+}
+
+.add-button {
+  // addbutton in form
+  transform: scale(1.3);
+  padding-left: 130px;
+}
+
+.card-body {
+  //text in card
+  font-size: 25px;
+
+}
+
+.btn {
+  //list button
+  border: solid thin rgb(20, 180, 92);
+  color: white;
+  background-color: white;
+}
+
+.btn:hover {
+  //mouseover list button
+  background-color: rgb(196, 236, 214);
+  border: rgb(20, 180, 92);
+}
+
+
+
+.card-header {
+  //all border of card
+  border: solid thin #eff1f2;
+  ;
+}
+
+.collapsearea {
+  //pulldown list view
+  border: solid thin #eff1f2;
+}
+
+.list-group-item {
+  color: black;
+}
+
+.showdownlist {
+  font-size: 20px;
+  color: black;
+}
+
+.linebetweenformandlist {
+  color: black;
+}
+
+
+
+
 .button-11 {
   display: flex;
   flex-direction: column;
@@ -536,7 +612,7 @@ export default {
   padding: 6px 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
   border-radius: 6px;
-  color: #3d3d3d;
+  color: #000000;
   background: #fff;
   border: none;
   box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1);
@@ -547,7 +623,7 @@ export default {
 
 .button-11:focus {
   box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1),
-    0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
+    0px 0px 0px 3.5px rgb(20, 180, 92);
   outline: 0;
 }
 </style>
