@@ -167,12 +167,12 @@ app.get("/api/user/verify-email", async (req, res) => {
   console.log("email: " + email);
   const time = new Date().getTime();
   const foundToken = await database.run(
-    `SELECT * FROM tempuser WHERE crytoToken = ?`,
+    `SELECT * FROM tempuser WHERE cryptoToken = ?`,
     [token]
   );
   ///expire check
   if (foundToken.length <= 0) {
-    alert("token expired!");
+    alert("token expired due to expiration time!");
     return;
   }
   console.log("expiration check: " + time);
@@ -189,12 +189,13 @@ app.get("/api/user/verify-email", async (req, res) => {
       [foundUser[0].userName, foundUser[0].email, foundUser[0].password]
     );
   } else if (foundToken[0].expiration < time) {
-    res.sendStatus(400);
+    //유효기간 만료 O
     console.log(
       "foundToken[0].expiration < time: " + foundToken[0].expiration < time
     );
-  } //유효기간 만료 O
-
+      await database.run('DELETE FROM tempuser WHERE cryptoToken =?',[foundToken[0].cryptoToken])
+    
+  } 
   console.log(
     "back----------> " +
       JSON.stringify(await database.run("SELECT * FROM user"))
@@ -237,7 +238,7 @@ app.post("/api/user/signup", async (req, res) => {
     // const tik_tok = await expiration();//현재시간 + 2시간
     console.log("time: " + result.time);
     await database.run(
-      `INSERT INTO tempuser (userName,email,password,crytoToken,expiration) VALUES(?,?,?,?,?)`,
+      `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
       [
         req.body.info.name,
         req.body.info.email,
@@ -492,8 +493,8 @@ const tempDBclear = async () => {
   const listOfTempUser = await database.run(`SELECT * FROM tempuser`);
   for (let el of listOfTempUser) {
     if (time >= el.expiration) {
-      await database.run(`DELETE FROM tempuser WHERE crytoToken`, [
-        el.crytoToken,
+      await database.run(`DELETE FROM tempuser WHERE cryptoToken`, [
+        el.cryptoToken,
       ]); //해당 데이터 삭제
     }
   }
