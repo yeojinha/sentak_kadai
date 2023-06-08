@@ -345,9 +345,8 @@ export default {
         return;
       }
       //check
-      const flag = true;
       const user = userData.formUser;
-      axios.post("/api/user/signup", user, flag).then(async (res) => {
+      axios.post("/api/user/signup", user).then(async (res) => {
         console.log("singUp: " + JSON.stringify(res.data));
         //singUp: [{"userName":"yaya","email":"yaya","password":"yaya","login_check":"false","accepted":"true"}]
         if (!res.data) {
