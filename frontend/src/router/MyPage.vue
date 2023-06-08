@@ -9,9 +9,13 @@
             id="list1"
             style="border-radius: 0.75rem; background-color: #eff1f2"
           >
-            <div class="card-body py-4 px-4 px-md-5"  >
+            <div class="card-body py-4 px-4 px-md-5">
               <p class="h1 text-center mt-3 mb-4 pb-3 text-primary">
-                <i class="fas fa-check-square me-1"   style="color: mediumseagreen">Click ->&nbsp;&nbsp;</i>
+                <i
+                  class="fas fa-check-square me-1"
+                  style="color: mediumseagreen"
+                  >Click ->&nbsp;&nbsp;</i
+                >
                 <i
                   class="fas fa-check-square me-1"
                   type="button"
@@ -40,8 +44,9 @@
                             data-toggle="collapse"
                             :data-target="'#collapseOne-' + item.id"
                             aria-expanded="false"
+                            style="color: mediumseagreen"
                             :aria-controls="'collapseOne-' + item.id"
-                            @click="hideCardBody(item.id)"
+                            @click="hideCardBody(item)"
                           >
                             <h4>{{ item.title }}</h4>
                           </button>
@@ -162,9 +167,9 @@
                             data-toggle="collapse"
                             :data-target="'#collapseOne-' + item.id"
                             aria-expanded="false"
-                            :aria-controls="'collapseOne-' + item.id"  
+                            :aria-controls="'collapseOne-' + item.id"
                             style="color: mediumseagreen"
-                            @click="hideCardBody(item.id)"
+                            @click="hideCardBody(item)"
                           >
                             <h4>{{ item.title }}</h4>
                           </button>
@@ -213,7 +218,10 @@
                                 },
                               }"
                             >
-                              <i class="fas fa-pencil-alt"   style="color: mediumseagreen"></i>
+                              <i
+                                class="fas fa-pencil-alt"
+                                style="color: mediumseagreen"
+                              ></i>
                             </router-link>
                           </button>
                           <button
@@ -407,11 +415,11 @@ export default {
       }
     };
 
-    const hideCardBody = async (id) => {
+    const hideCardBody = async (item) => {
       // alert("clicked id: " + id);
-      const found = await state.list.find((el) => el.id == id);
-      // alert("Before hideCardBody isActive: " + found.isActive);
-      found.isActive = !found.isActive;
+      // const found = await state.list.find((el) => el.id == id);
+      // alert("Before hideCardBody isActive: " + JSON.stringify(item));
+      item.isActive = !item.isActive;
       // console.log("hideCardBody found data: " + JSON.stringify(found));
       state.list.forEach((el) =>
         console.log("id: " + el.id + "     isActive: " + el.isActive)
@@ -450,6 +458,10 @@ export default {
                 }
               });
           }
+        } else {
+          //token expired
+          console.log("token expired!");
+          router.push("/");
         }
       });
     showContents();
@@ -467,7 +479,6 @@ export default {
   },
 };
 </script>
-
 
 <style lang="scss">
 #list1 .form-control {
@@ -493,7 +504,7 @@ export default {
 
 .form-group {
   font-size: 20px;
-  height: 150%
+  height: 150%;
 }
 
 .add-button {
@@ -505,7 +516,6 @@ export default {
 .card-body {
   //text in card
   font-size: 25px;
-
 }
 
 .btn {
@@ -521,12 +531,9 @@ export default {
   border: rgb(20, 180, 92);
 }
 
-
-
 .card-header {
   //all border of card
   border: solid thin #eff1f2;
-  ;
 }
 
 .collapsearea {
@@ -546,9 +553,6 @@ export default {
 .linebetweenformandlist {
   color: black;
 }
-
-
-
 
 .button-11 {
   display: flex;

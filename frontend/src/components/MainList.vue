@@ -10,7 +10,10 @@
           >
             <div class="card-body py-4 px-4 px-md-5">
               <p class="h1 text-center mt-3 mb-4 pb-3 text-primary">
-                <i class="fas fa-check-square me-1" style="color: rgb(30, 129, 75)"></i>
+                <i
+                  class="fas fa-check-square me-1"
+                  style="color: rgb(30, 129, 75)"
+                ></i>
                 <u style="color: mediumseagreen">JOIN CHALLENGE</u>
               </p>
               <!-- add challenge -->
@@ -61,7 +64,6 @@
                     type="button"
                     class="btn btn-primary"
                     style="color: mediumseagreen"
-                    
                     @click="addItem()"
                   >
                     POST
@@ -160,7 +162,6 @@
                             role="button"
                             data-mdb-toggle="tooltip"
                             title="Edit todo"
-                            
                             @click="editItem(item)"
                           >
                             <router-link
@@ -174,7 +175,10 @@
                                 },
                               }"
                             >
-                              <i class="fas fa-pencil-alt"   style="color: mediumseagreen"></i>
+                              <i
+                                class="fas fa-pencil-alt"
+                                style="color: mediumseagreen"
+                              ></i>
                             </router-link>
                           </button>
                           <button
@@ -222,7 +226,7 @@
                         { 'd-none': !item.isActive },
                       ]"
                     >
-                      <h4>{{ item.content }}</h4>
+                      <h3>{{ item.content }}</h3>
                     </div>
                   </div>
                 </div>
@@ -422,7 +426,7 @@ export default {
         alert("Plz Login first!");
         return;
       }
-      if(state.formData.title.length<=5){
+      if (state.formData.title.length <= 5) {
         alert("state.formData.title.length<=5");
         return;
       }
@@ -480,6 +484,10 @@ export default {
       // alert("resUser token check: " + );
 
       if (resUser.data.user) {
+        //if could be false
+        console.log(
+          "api/todolist/getUser: " + JSON.stringify(resUser.data.user)
+        );
         state.userName = resUser.data.user.info.name;
         const userName = resUser.data.user.info.name;
         console.log("userName: " + JSON.stringify(userName));
@@ -506,6 +514,7 @@ export default {
           for (let j = 0; j < state.list.length; j++) {
             state.list[j].hasJoined = false;
           }
+          router.push("/");
         });
       }
     });
@@ -522,7 +531,6 @@ export default {
   },
 };
 </script>
-
 
 <style lang="scss">
 #list1 .form-control {
@@ -548,7 +556,7 @@ export default {
 
 .form-group {
   font-size: 20px;
-  height: 150%
+  height: 150%;
 }
 
 .add-button {
@@ -560,7 +568,6 @@ export default {
 .card-body {
   //text in card
   font-size: 25px;
-
 }
 
 .btn {
@@ -576,12 +583,9 @@ export default {
   border: rgb(20, 180, 92);
 }
 
-
-
 .card-header {
   //all border of card
   border: solid thin #eff1f2;
-  ;
 }
 
 .collapsearea {
@@ -601,9 +605,6 @@ export default {
 .linebetweenformandlist {
   color: black;
 }
-
-
-
 
 .button-11 {
   display: flex;

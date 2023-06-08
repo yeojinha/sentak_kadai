@@ -5,7 +5,7 @@ const database = require("../database");
 module.exports = {
   getJwtKey: async () => {
     const result = await database.run(`SELECT * FROM jwtKey`);
-    console.log("result token:" +  result[0].jwtKey.toString());
+    console.log("result token:" + result[0].jwtKey.toString());
     if (result && result.length > 0) {
       return result[0].jwtKey.toString(); // Convert jwtKey to a string
     } else {
@@ -14,6 +14,7 @@ module.exports = {
   },
   sign: async (foundUser) => {
     const jwtKey = await module.exports.getJwtKey();
+
     console.log("foundUser: " + JSON.stringify(foundUser));
     if (!jwtKey) {
       throw new Error("JWT secret key not found");
@@ -24,18 +25,18 @@ module.exports = {
           info: {
             // password: foundUser.info.password,
             // confirm_password: foundUser.info.confirm_password,
-            name: foundUser[0].userName,
-            email: foundUser[0].email,
+            name: foundUser.userName,
+            email: foundUser.email,
           },
           checked: {
             // accepted: foundUser.checked.accepted,
-            login_check: foundUser[0].login_check,
+            login_check: foundUser.login_check,
           },
         },
       },
       jwtKey,
       {
-        expiresIn: "15m",
+        expiresIn: "3m",
         issuer: "yeojin",
         // algorithm: "HS256",
       }
@@ -43,19 +44,25 @@ module.exports = {
     console.log("token.js -------->" + JSON.stringify(token));
     return token;
   },
-  verify: async (req) => {
+  verify: async (token) => {
     const jwtKey = await module.exports.getJwtKey();
     if (!jwtKey) {
       throw new Error("JWT secret key not found");
     }
-    console.log("req.cookies.token: " + JSON.stringify(req.cookies.token));
+    // const authHeader = req.headers["authorization"];
+    // const token = authHeader && authHeader.split(" ")[1];
+
+    console.log("req.cookies.token: " + JSON.stringify(token));
     let decoded = null;
     try {
-      decoded = await jwt.verify(req.cookies.token, jwtKey);
+      decoded = await jwt.verify(token, jwtKey);
+      // const token = await module.exports.sign();
       console.log("decode on token.js: " + JSON.stringify(decoded));
       return decoded;
     } catch (err) {
-      console.log(err + "decoded err");
+      console.log("token verify failed!!!");
+      return false; //false -> logout signal
+      //err -> logout signal send
     }
   },
   refresh: async () => {
@@ -82,7 +89,7 @@ module.exports = {
       throw new Error("JWT secret key not found");
     }
     return jwt.sign({}, jwtKey, {
-      expiresIn: "15d",
+      expiresIn: "3d",
       issuer: "yeojin",
     });
   },
@@ -96,10 +103,17 @@ module.exports = {
         `SELECT refreshToken FROM user WHERE userName=?`,
         [username]
       );
-      if (foundRefreshToken) {
+      console.log(
+        "refresh Token database result: " + JSON.stringify(foundRefreshToken)
+      );
+      if (foundRefreshToken[0].refreshToken) {
         // required to check
+        console.log(
+          "refresh Token database result: " +
+            JSON.stringify(foundRefreshToken[0].refreshToken)
+        );
         try {
-          jwt.verify(foundRefreshToken, jwtKey);
+          jwt.verify(foundRefreshToken[0].refreshToken, jwtKey);
           return true;
         } catch (err) {
           return false;

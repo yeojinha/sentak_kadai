@@ -4,16 +4,27 @@
       <a
         class="navbar-brand"
         href="#"
-        style="color:mediumseagreen"
+        style="color: mediumseagreen"
         @click="home()"
       >
-        Main &nbsp &nbsp &nbsp &nbsp<b   style="color:mediumseagreen">HomePage</b></a
+        Main &nbsp &nbsp &nbsp &nbsp<b style="color: mediumseagreen"
+          >HomePage</b
+        ></a
       >
     </div>
-    <div id="navbarCollapse"   style="color:mediumseagreen" class="collapse navbar-collapse">
+    <div
+      id="navbarCollapse"
+      style="color: mediumseagreen"
+      class="collapse navbar-collapse"
+    >
       <ul id="login_logout" class="nav navbar-nav navbar-right">
         <li v-if="!userData.user.checked.login_check">
-          <a data-toggle="dropdown" class="btn btn-primary dropdown-toggle get-started-btn mt-1 mb-1" href="#">Sign In</a>
+          <a
+            data-toggle="dropdown"
+            class="btn btn-primary dropdown-toggle get-started-btn mt-1 mb-1"
+            href="#"
+            >Sign In</a
+          >
           <ul class="dropdown-menu form-wrapper">
             <li>
               <form>
@@ -38,7 +49,7 @@
                 <input
                   type="submit"
                   class="btn btn-primary btn-block"
-                  style="background-color:mediumseagreen"
+                  style="background-color: mediumseagreen"
                   value="Login"
                   @click.prevent="login()"
                 />
@@ -124,7 +135,6 @@
                 <input
                   type="submit"
                   class="btn btn-primary btn-block"
-                  
                   value="Sign up"
                   @click="signUp()"
                 />
@@ -245,9 +255,12 @@ export default {
           "inside front user token check: " + JSON.stringify(userData.user)
         );
       } else {
+        //token expired
+        console.log("token expired!");
         console.log("no login now");
         userData.user.info = {};
         userData.user.checked = {};
+        router.push("/");
       }
     });
 
@@ -332,19 +345,17 @@ export default {
         return;
       }
       //check
-
+      const flag = true;
       const user = userData.formUser;
-      alert("verification email sent to your email");
-      axios.post("/api/user/signup", user).then(async (res) => {
+      axios.post("/api/user/signup", user, flag).then(async (res) => {
         console.log("singUp: " + JSON.stringify(res.data));
         //singUp: [{"userName":"yaya","email":"yaya","password":"yaya","login_check":"false","accepted":"true"}]
         if (!res.data) {
           //if no res data
-          alert("The ID already exists.");
+          alert("The ID or Email already exists.");
           return;
         } else {
-          // alert("가입성공");
-          reset(userData.formUser);
+          alert("verification email sent to your email");
         }
       });
     };

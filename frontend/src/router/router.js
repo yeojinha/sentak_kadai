@@ -23,8 +23,13 @@ const routes = [
   },
   {
     path: "/:pathMatch(.*)*",
-    redirect:"/notfound"
-  }
+    redirect: "/notfound",
+  },
+  {
+    path: "/verify-email",
+    name: "Verify",
+    component: () => import("./Verify.vue"),
+  },
 ];
 
 const router = createRouter({
