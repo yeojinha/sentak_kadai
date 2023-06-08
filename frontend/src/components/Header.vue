@@ -316,7 +316,7 @@ export default {
     };
     //logIn
     //signUp
-    const signUp = () => {
+    const signUp = async () => {
       console.log(
         "first accepted check: " + userData.formUser.checked.accepted
       );
@@ -352,20 +352,21 @@ export default {
         .then(async (res) => {
           let result = await res.data;
           // alert("res.data: " + JSON.stringify(result));
+
+          // alert("res.data: " + JSON.stringify(result));
           if (result === true) {
             // alert("singUp if:  " + JSON.stringify(result));
             alert("verification email sent to your email");
           } else {
             // alert("singUp else : " + result);
             alert("The ID or Email already exists.");
-          } // Access the response data here
+          }
         })
         .catch((error) => {
           console.log("Error:", error);
         });
       // window.location.reload();
     };
-
     return {
       userData,
       signUp,
