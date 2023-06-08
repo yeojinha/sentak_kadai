@@ -8,7 +8,7 @@ const schedule = require("node-schedule");
 const database = require("./database");
 const jwt = require("./jwt/token");
 
-const { generateEmailCrytoForAuth } = require("./jwt/cryto");
+const { generateEmailCryptoForAuth } = require("./jwt/crypto");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -29,7 +29,46 @@ const data = {
 //     return null;
 //   }
 // };
+const middleWare = async (req) => {
+  let tk = req.cookies.token;
+  let decoded = null;
+  let refreshVerification = null;
 
+  decoded = await jwt.verify(tk);
+
+  console.log("middleWare: " + JSON.stringify(decoded));
+  if (!decoded || decoded === null) {
+    //  await database.run(
+    //    `UPDATE user SET login_check='false', accessToken=NULL, refreshToken=NULL WHERE userName=?`,
+    //    [req.body.name]
+    //  );
+    console.log("access token middleWare expired token!!!");
+    return false;
+  } else {
+    const foundUser = {
+      userName: decoded.user.info.name,
+      email: decoded.user.info.email,
+      login_check: decoded.user.checked.login_check,
+    };
+    console.log("foundUser middleWare: " + JSON.stringify(foundUser));
+    refreshVerification = await jwt.refreshVerify(foundUser.userName);
+    console.log("refreshVerification: " + JSON.stringify(refreshVerification));
+    if (!refreshVerification || refreshVerification === null) {
+      console.log("refresh token middleWare expired token!!!");
+      return false;
+    }
+    //refresh and access token is okay
+    const newToken = await jwt.sign(foundUser);
+    console.log("newToken: " + JSON.stringify(newToken));
+    await database.run(
+      //access and refresh token into database
+      "UPDATE user SET accessToken = ? WHERE userName = ?",
+      [newToken, foundUser.userName]
+    );
+
+    return await jwt.verify(newToken);
+  }
+};
 app.put("/api/todolist/participants_events", async (req, res) => {
   console.log("/api/todolist/participants_events: " + JSON.stringify(req.body));
   let numberOf = 0;
@@ -147,14 +186,17 @@ const loginTry = async (name, password) => {
 
 app.get("/api/user", async (req, res) => {
   // jwtKey = await getJwtKey();tempDBclear();
+  //await findUser(user.name, user.password);
   tempDBclear();
-  if (req.cookies && req.cookies.token) {
-    console.log(
-      "back app.get user : " + req.cookies.token + "\ncookie: " + req.cookies
-    );
-    const decoded = await jwt.verify(req);
+  if (req.cookies.token || req.cookies) {
+    // const decoded = await middleWare(req);
+    //{"user":{"info":{"name":"yeojin","email":"hayeojin4966@gmail.com"},"checked":{"login_check":true}},"iat":1686190345,"exp":1686190645,"iss":"yeojin"}
+
+    const decoded = await middleWare(req);
     console.log("DECODE: " + JSON.stringify(decoded));
-    res.send(decoded);
+    if (!decoded) {
+      res.send();
+    } else res.send(decoded);
   } else {
     res.send();
   }
@@ -193,9 +235,10 @@ app.get("/api/user/verify-email", async (req, res) => {
     console.log(
       "foundToken[0].expiration < time: " + foundToken[0].expiration < time
     );
-      await database.run('DELETE FROM tempuser WHERE cryptoToken =?',[foundToken[0].cryptoToken])
-    
-  } 
+    await database.run("DELETE FROM tempuser WHERE cryptoToken =?", [
+      foundToken[0].cryptoToken,
+    ]);
+  }
   console.log(
     "back----------> " +
       JSON.stringify(await database.run("SELECT * FROM user"))
@@ -215,26 +258,34 @@ app.post("/api/user/signup", async (req, res) => {
    */
   console.log("singup: " + JSON.stringify(req.body));
 
-  console.log("req.body.info.name-> " + req.body.info.name);
+  console.log("req.body.info.name-> " + req.body.info.email);
   console.log("-----------");
   let userData = await loginTry(req.body.info.name, req.body.info.password);
-
-  // console.log("userData " + JSON.stringify(userData));
-  console.log(
-    "req.body.info.name, req.body.info.email, req.body.info.password: " +
-      req.body.info.name,
-    req.body.info.email,
-    req.body.info.password
+  let emailCheckUser = await database.run(
+    `SELECT * FROM user WHERE email = ?`,
+    [req.body.info.email]
   );
+  let emailCheckTemp = await database.run(
+    `SELECT * FROM tempuser WHERE email = ?`,
+    [req.body.info.email]
+  );
+  // console.log("userData " + JSON.stringify(userData));
+  // console.log("email user: " + JSON.stringify(emailCheckUser));
+  // console.log("email temp: " + JSON.stringify(emailCheckTemp));
 
-  if (userData.length > 0) {
+  if (
+    userData.length > 0 ||
+    emailCheckUser.length > 0 ||
+    emailCheckTemp.length > 0
+  ) {
     //if already userName is in the list
-    console.log("user name or email ");
+    console.log("user name or email");
+
     res.send();
   } else {
     //no same userName
     // userList.push(userData); // change to sql ->
-    result = await generateEmailCrytoForAuth();
+    result = await generateEmailCryptoForAuth();
     // const tik_tok = await expiration();//현재시간 + 2시간
     console.log("time: " + result.time);
     await database.run(
@@ -247,6 +298,8 @@ app.post("/api/user/signup", async (req, res) => {
         result.time,
       ]
     );
+    const flag = true;
+    res.send(flag);
     emailAuth(req.body.info.email, result.token, result.expire);
     // userData = await loginTry(req.body.info.name, req.body.info.password);
     // console.log("sign up ID check from db: " + userData);
@@ -262,13 +315,18 @@ app.post("/api/user/signup", async (req, res) => {
 // Login Logout
 //Login
 app.post("/api/user/login", async (req, res) => {
-  const user = req.body;
+  let user = req.body;
   let token = null;
+  let refreshToken = null;
   let foundUser = null;
-
   foundUser = await findUser(user.name, user.password);
   console.log("foundUser.userName: " + JSON.stringify(foundUser[0]));
 
+  const token_user = {
+    userName: foundUser[0].userName,
+    email: foundUser[0].email,
+    login_check: foundUser[0].login_check,
+  };
   console.log("foundUser login: " + JSON.stringify(foundUser));
   if (foundUser.length > 0) {
     foundUser[0].login_check = true; //change to sql ->
@@ -276,23 +334,17 @@ app.post("/api/user/login", async (req, res) => {
     await database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
       foundUser[0].userName,
     ]);
-    if (await jwt.refreshVerify(foundUser[0].userName)) {
-      //only access expired.
-      token = await jwt.sign(foundUser);
-      console.log("리프레쉬 토큰은 만들어지지 않는다, 왜냐 만료기한 전이라서");
-    } else {
-      //expired both tokens.
-      token = await jwt.sign(foundUser);
-      const refreshToken = await jwt.refresh();
+    token = await jwt.sign(token_user);
+    refreshToken = await jwt.refresh();
 
-      console.log("access token: " + JSON.stringify(token));
-      console.log("refresh Token: " + JSON.stringify(refreshToken));
-      await database.run(
-        //refresh token into database
-        "UPDATE user SET refreshToken = ? WHERE userName = ?",
-        [refreshToken, foundUser[0].userName]
-      );
-    }
+    console.log("access token: " + JSON.stringify(token));
+    console.log("refresh Token: " + JSON.stringify(refreshToken));
+    await database.run(
+      //access and refresh token into database
+      "UPDATE user SET accessToken = ? , refreshToken = ? WHERE userName = ?",
+      [token, refreshToken, foundUser[0].userName]
+    );
+
     res.cookie("token", token); //set cookie browser
     // res.cookie("refreshToken", refreshToken);//not recommendable
     // res.cookie("refreshToken", refreshToken);
@@ -308,9 +360,10 @@ app.delete("/api/user/logout", async (req, res) => {
   console.log("logout cookie check: " + JSON.stringify(req.body));
   if (req.cookies && req.cookies.token) {
     //if user cookie found
-    await database.run(`UPDATE user SET login_check='false' WHERE userName=?`, [
-      req.body.name,
-    ]);
+    await database.run(
+      `UPDATE user SET login_check='false', accessToken=NULL, refreshToken=NULL WHERE userName=?`,
+      [req.body.name]
+    );
     res.clearCookie("token"); //delete token cookie
   }
   data.user = null; //when logout giving this null
@@ -377,10 +430,17 @@ app.post("/api/todolist/add", async (req, res) => {
 //list show
 
 app.get("/api/todolist/getUser", async (req, res) => {
+  // console.log("cookie check ");
   if (req.cookies && req.cookies.token) {
     console.log("getUser: " + JSON.stringify(req.cookies.token));
-    const user = await jwt.verify(req);
-    res.send(user);
+    // const user = await jwt.verify(req);
+    const user = await middleWare(req);
+    if (!user) {
+      console.log("/api/todolist/getUser " + JSON.stringify(user));
+      res.send();
+    } else {
+      res.send(user);
+    }
   } else {
     console.log("getUser: " + JSON.stringify(req.cookies.token));
     res.send();
@@ -416,7 +476,8 @@ app.get("/api/todolist/show_special", async (req, res) => {
   );
   //get list data by select sql and put it data.list;
   if (req.cookies && req.cookies.token) {
-    data.user = await jwt.verify(req);
+    data.user = await middleWare(req);
+    // data.user = await jwt.verify(req.cookies.token);
     res.send(data);
   }
 });

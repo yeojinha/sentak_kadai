@@ -10,8 +10,11 @@
           >
             <div class="card-body py-4 px-4 px-md-5">
               <p class="h1 text-center mt-3 mb-4 pb-3 text-primary">
-                <i class="fas fa-check-square me-1" style='color:mediumseagreen'></i>
-                <u style='color:mediumseagreen'>EDIT CHALLENGE</u>
+                <i
+                  class="fas fa-check-square me-1"
+                  style="color: mediumseagreen"
+                ></i>
+                <u style="color: mediumseagreen">EDIT CHALLENGE</u>
               </p>
               <form>
                 <div class="form-group">
@@ -50,7 +53,7 @@
                     <button
                       type="button"
                       class="btn btn-primary"
-                       style="color: mediumseagreen"
+                      style="color: mediumseagreen"
                       @click="editItem"
                     >
                       edit
@@ -60,7 +63,7 @@
                     <button
                       type="button"
                       class="btn btn-primary"
-                       style="color: mediumseagreen"
+                      style="color: mediumseagreen"
                       @click="toHome"
                     >
                       HOME
@@ -122,11 +125,11 @@ export default {
     const toHome = () => {
       state.confirm = window.confirm("Redirect to Home??");
       if (state.confirm) {
-            router.push("/"); // Navigate to "/" route after alert OK button is clicked
-          }else{
-            return;
-          }
-      } 
+        router.push("/"); // Navigate to "/" route after alert OK button is clicked
+      } else {
+        return;
+      }
+    };
 
     const directToError = () => {
       router.push({ path: "/notfound" });
@@ -139,7 +142,8 @@ export default {
         directToError();
       }
       if (!res.data) {
-        directToError();
+        router.push("/");
+        // directToError();
       }
       if (res.data) {
         console.log(res.data);
@@ -182,7 +186,7 @@ export default {
 
 .form-group {
   font-size: 20px;
-  height: 150%
+  height: 150%;
 }
 
 .add-button {
@@ -194,7 +198,6 @@ export default {
 .card-body {
   //text in card
   font-size: 25px;
-
 }
 
 .btn {
@@ -210,12 +213,9 @@ export default {
   border: rgb(20, 180, 92);
 }
 
-
-
 .card-header {
   //all border of card
   border: solid thin #eff1f2;
-  ;
 }
 
 .collapsearea {
@@ -235,9 +235,6 @@ export default {
 .linebetweenformandlist {
   color: black;
 }
-
-
-
 
 .button-11 {
   display: flex;
