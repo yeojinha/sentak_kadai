@@ -248,44 +248,31 @@ app.get("/api/user/verify-email", async (req, res) => {
 });
 //signup
 app.post("/api/user/signup", async (req, res) => {
-  //tempDB_table에 임시유저와 비밀번호 그리고 인증번호를 입력하고
-  //전송한 인증코드를 비교하기,.
-  // 인증번호는 db와 함께 비교하기.
-  /**
-   * 1. 특정링크와 함께 인증코드 전송 혹은 특정링크에 인증코드 param으로 함께 전송
-   * 2. 인증코드 포함이면 form에 입력하거 submit -> db에 유저 정보 post -> redirect to '/home'
-   * 3. param으로 전송하면 2번과 같이 db에 유저 정보 post -> redirect to '/home'
-   */
   console.log("singup: " + JSON.stringify(req.body));
 
-  console.log("req.body.info.name-> " + req.body.info.email);
-  console.log("-----------");
+  let flag = true;
   let userData = await loginTry(req.body.info.name, req.body.info.password);
   let emailCheckUser = await database.run(
     `SELECT * FROM user WHERE email = ?`,
     [req.body.info.email]
   );
   let emailCheckTemp = await database.run(
-    `SELECT * FROM tempuser WHERE email = ?`,
+    `SELECT email FROM tempuser WHERE email = ?`,
     [req.body.info.email]
   );
-  // console.log("userData " + JSON.stringify(userData));
-  // console.log("email user: " + JSON.stringify(emailCheckUser));
-  // console.log("email temp: " + JSON.stringify(emailCheckTemp));
-
-  if (
-    userData.length > 0 ||
-    emailCheckUser.length > 0 ||
-    emailCheckTemp.length > 0
-  ) {
+  let length = userData.length + emailCheckUser.length + emailCheckTemp.length;
+  console.log("emailCheckUser: " + JSON.stringify(emailCheckUser));
+  console.log("emailCheckTemp: " + JSON.stringify(emailCheckTemp));
+  console.log("userData: " + JSON.stringify(userData));
+  console.log("length: " + length);
+  if (length > 0) {
     console.log("user name or email");
+    flag = false;
 
-    res.send();
+    console.log("if 플래그 값 false임: " + flag);
+    res.send(flag);
   } else {
-    //no same userName
-    // userList.push(userData); // change to sql ->
-    result = await generateEmailCryptoForAuth();
-    // const tik_tok = await expiration();//현재시간 + 2시간
+    result = generateEmailCryptoForAuth();
     console.log("time: " + result.time);
     await database.run(
       `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
@@ -297,16 +284,12 @@ app.post("/api/user/signup", async (req, res) => {
         result.time,
       ]
     );
-    const flag = true;
+    flag = true;
+    console.log("else 플래그 값 true임: " + flag);
     res.send(flag);
-    await emailAuth(req.body.info.email, result.token, result.expire);
-    // userData = await loginTry(req.body.info.name, req.body.info.password);
-    // console.log("sign up ID check from db: " + userData);
-    // console.log(
-    //   "back----------> " +
-    //     JSON.stringify(await database.run("SELECT * FROM user;"))
-    // );
-    // res.send(userData);
+    setTimeout(() => {
+      emailAuth(req.body.info.email, result.token, result.expire);
+    }, 3000);
   }
 });
 ///////////////////
@@ -319,7 +302,7 @@ app.post("/api/user/login", async (req, res) => {
   let refreshToken = null;
   let foundUser = null;
   foundUser = await findUser(user.name, user.password);
-  console.log("foundUser.userName: " + JSON.stringify(foundUser[0]));
+  // console.log("foundUser.userName: " + JSON.stringify(foundUser[0]));
 
   const token_user = {
     userName: foundUser[0].userName,

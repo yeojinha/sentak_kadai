@@ -345,18 +345,25 @@ export default {
         return;
       }
       //check
+      // alert("verification email sent to your email");
       const user = userData.formUser;
-      axios.post("/api/user/signup", user).then(async (res) => {
-        console.log("singUp: " + JSON.stringify(res.data));
-        //singUp: [{"userName":"yaya","email":"yaya","password":"yaya","login_check":"false","accepted":"true"}]
-        if (!res.data) {
-          //if no res data
-          alert("The ID or Email already exists.");
-          return;
-        } else {
-          alert("verification email sent to your email");
-        }
-      });
+      axios
+        .post("/api/user/signup", user)
+        .then(async (res) => {
+          let result = await res.data;
+          // alert("res.data: " + JSON.stringify(result));
+          if (result === true) {
+            // alert("singUp if:  " + JSON.stringify(result));
+            alert("verification email sent to your email");
+          } else {
+            // alert("singUp else : " + result);
+            alert("The ID or Email already exists.");
+          } // Access the response data here
+        })
+        .catch((error) => {
+          console.log("Error:", error);
+        });
+      // window.location.reload();
     };
 
     return {
