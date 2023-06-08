@@ -14,7 +14,6 @@ module.exports = {
   },
   sign: async (foundUser) => {
     const jwtKey = await module.exports.getJwtKey();
-
     console.log("foundUser: " + JSON.stringify(foundUser));
     if (!jwtKey) {
       throw new Error("JWT secret key not found");
@@ -25,18 +24,18 @@ module.exports = {
           info: {
             // password: foundUser.info.password,
             // confirm_password: foundUser.info.confirm_password,
-            name: foundUser.userName,
-            email: foundUser.email,
+            name: foundUser[0].userName,
+            email: foundUser[0].email,
           },
           checked: {
             // accepted: foundUser.checked.accepted,
-            login_check: foundUser.login_check,
+            login_check: foundUser[0].login_check,
           },
         },
       },
       jwtKey,
       {
-        expiresIn: "3m",
+        expiresIn: "5m",
         issuer: "yeojin",
         // algorithm: "HS256",
       }
@@ -44,7 +43,7 @@ module.exports = {
     console.log("token.js -------->" + JSON.stringify(token));
     return token;
   },
-  verify: async (token) => {
+  verify: async (req) => {
     const jwtKey = await module.exports.getJwtKey();
     if (!jwtKey) {
       throw new Error("JWT secret key not found");
@@ -52,16 +51,14 @@ module.exports = {
     // const authHeader = req.headers["authorization"];
     // const token = authHeader && authHeader.split(" ")[1];
 
-    console.log("req.cookies.token: " + JSON.stringify(token));
+    console.log("req.cookies.token: " + JSON.stringify(req.cookies.token));
     let decoded = null;
     try {
-      decoded = await jwt.verify(token, jwtKey);
-      // const token = await module.exports.sign();
+      decoded = await jwt.verify(req.cookies.token, jwtKey);
       console.log("decode on token.js: " + JSON.stringify(decoded));
       return decoded;
     } catch (err) {
-      console.log("token verify failed!!!");
-      return false; //false -> logout signal
+      console.log(err + "decoded err");
       //err -> logout signal send
     }
   },
@@ -103,17 +100,10 @@ module.exports = {
         `SELECT refreshToken FROM user WHERE userName=?`,
         [username]
       );
-      console.log(
-        "refresh Token database result: " + JSON.stringify(foundRefreshToken)
-      );
-      if (foundRefreshToken[0].refreshToken) {
+      if (foundRefreshToken) {
         // required to check
-        console.log(
-          "refresh Token database result: " +
-            JSON.stringify(foundRefreshToken[0].refreshToken)
-        );
         try {
-          jwt.verify(foundRefreshToken[0].refreshToken, jwtKey);
+          jwt.verify(foundRefreshToken, jwtKey);
           return true;
         } catch (err) {
           return false;
