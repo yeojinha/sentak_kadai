@@ -247,18 +247,18 @@ app.get("/api/user/verify-email", async (req, res) => {
   res.redirect("http://localhost:8080/");
 });
 //signup
-app.post("/api/user/signup", async (req, res) => {
-  console.log("singup: " + JSON.stringify(req.body));
+app.get("/api/user/duplicateCheck", async (req, res) => {
+  console.log("dup check: " + JSON.stringify(req.query));
 
   let flag = true;
-  let userData = await loginTry(req.body.info.name, req.body.info.password);
+  let userData = await loginTry(req.query.info.name, req.query.info.password);
   let emailCheckUser = await database.run(
-    `SELECT * FROM user WHERE email = ?`,
-    [req.body.info.email]
+    `SELECT email FROM user WHERE email = ?`,
+    [req.query.info.email]
   );
   let emailCheckTemp = await database.run(
     `SELECT email FROM tempuser WHERE email = ?`,
-    [req.body.info.email]
+    [req.query.info.email]
   );
   let length = userData.length + emailCheckUser.length + emailCheckTemp.length;
   console.log("emailCheckUser: " + JSON.stringify(emailCheckUser));
@@ -268,47 +268,42 @@ app.post("/api/user/signup", async (req, res) => {
   if (length > 0) {
     console.log("user name or email");
     flag = false;
-
     console.log("if 플래그 값 false임: " + flag);
     res.send(flag);
   } else {
-    result = generateEmailCryptoForAuth();
-    console.log("time: " + result.time);
-    await database.run(
-      `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
-      [
-        req.body.info.name,
-        req.body.info.email,
-        req.body.info.password,
-        result.token,
-        result.time,
-      ]
-    );
-    flag = true;
-    console.log("else 플래그 값 true임: " + flag);
     res.send(flag);
-    setTimeout(() => {
-      emailAuth(req.body.info.email, result.token, result.expire);
-    }, 3000);
+    console.log("else 플래그 값 true임: " + flag);
   }
+});
+app.post("/api/user/signup", async (req, res) => {
+  console.log("signup check: " + JSON.stringify(req.body));
+
+  result = generateEmailCryptoForAuth();
+  console.log("time: " + result.time);
+  await database.run(
+    `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
+    [
+      req.body.info.name,
+      req.body.info.email,
+      req.body.info.password,
+      result.token,
+      result.time,
+    ]
+  );
+  emailAuth(req.body.info.email, result.token, result.expire);
 });
 ///////////////////
 
 // Login Logout
 //Login
 app.post("/api/user/login", async (req, res) => {
-  let user = req.body;
+  const user = req.body;
   let token = null;
-  let refreshToken = null;
   let foundUser = null;
-  foundUser = await findUser(user.name, user.password);
-  // console.log("foundUser.userName: " + JSON.stringify(foundUser[0]));
 
-  const token_user = {
-    userName: foundUser[0].userName,
-    email: foundUser[0].email,
-    login_check: foundUser[0].login_check,
-  };
+  foundUser = await findUser(user.name, user.password);
+  console.log("foundUser.userName: " + JSON.stringify(foundUser[0]));
+
   console.log("foundUser login: " + JSON.stringify(foundUser));
   if (foundUser.length > 0) {
     foundUser[0].login_check = true; //change to sql ->
@@ -316,17 +311,23 @@ app.post("/api/user/login", async (req, res) => {
     await database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
       foundUser[0].userName,
     ]);
-    token = await jwt.sign(token_user);
-    refreshToken = await jwt.refresh();
+    if (await jwt.refreshVerify(foundUser[0].userName)) {
+      //only access expired.
+      token = await jwt.sign(foundUser);
+      console.log("리프레쉬 토큰은 만들어지지 않는다, 왜냐 만료기한 전이라서");
+    } else {
+      //expired both tokens.
+      token = await jwt.sign(foundUser);
+      const refreshToken = await jwt.refresh();
 
-    console.log("access token: " + JSON.stringify(token));
-    console.log("refresh Token: " + JSON.stringify(refreshToken));
-    await database.run(
-      //access and refresh token into database
-      "UPDATE user SET accessToken = ? , refreshToken = ? WHERE userName = ?",
-      [token, refreshToken, foundUser[0].userName]
-    );
-
+      console.log("access token: " + JSON.stringify(token));
+      console.log("refresh Token: " + JSON.stringify(refreshToken));
+      await database.run(
+        //refresh token into database
+        "UPDATE user SET refreshToken = ? WHERE userName = ?",
+        [refreshToken, foundUser[0].userName]
+      );
+    }
     res.cookie("token", token); //set cookie browser
     // res.cookie("refreshToken", refreshToken);//not recommendable
     // res.cookie("refreshToken", refreshToken);
@@ -337,6 +338,7 @@ app.post("/api/user/login", async (req, res) => {
     res.send();
   }
 });
+
 //Logout
 app.delete("/api/user/logout", async (req, res) => {
   console.log("logout cookie check: " + JSON.stringify(req.body));
