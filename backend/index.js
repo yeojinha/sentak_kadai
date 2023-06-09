@@ -14,7 +14,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
 const port = 3000;
-let mailFlag = true;
+let mailFlag = null;
 const data = {
   list: [],
   user: {},
@@ -271,6 +271,7 @@ app.get("/api/user/duplicateCheck", async (req, res) => {
     res.send(mailFlag);
   } else {
     res.send(mailFlag);
+    mailFlag = true;
     console.log("else 플래그 값 true임: " + mailFlag);
   }
 });
