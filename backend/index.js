@@ -246,6 +246,7 @@ app.get("/api/user/verify-email", async (req, res) => {
   // alert("Welcome!!! Your account has been verified.");
   res.redirect("http://localhost:8080/");
 });
+let flag = true;
 //signup
 app.get("/api/user/duplicateCheck", async (req, res) => {
   console.log("dup check: " + JSON.stringify(req.query));
@@ -264,21 +265,22 @@ app.get("/api/user/duplicateCheck", async (req, res) => {
   console.log("emailCheckTemp: " + JSON.stringify(emailCheckTemp));
   console.log("userData: " + JSON.stringify(userData));
   console.log("length: " + length);
+
   if (length > 0) {
     console.log("user name or email");
-    mailFlag = false;
-    console.log("if 플래그 값 false임: " + mailFlag);
-    res.send(mailFlag);
+    console.log("if 플래그 값 false임: " + flag);
+    flag = false;
+    res.send(flag);
   } else {
-    res.send(mailFlag);
-    mailFlag = true;
-    console.log("else 플래그 값 true임: " + mailFlag);
+    flag = true;
+    res.send(flag);
+    console.log("else 플래그 값 true임: " + flag);
   }
 });
 app.post("/api/user/signup", async (req, res) => {
   console.log("signup check: " + JSON.stringify(req.body));
 
-  if (mailFlag) {
+  if (flag) {
     result = generateEmailCryptoForAuth();
     console.log("time: " + result.time);
     await database.run(
