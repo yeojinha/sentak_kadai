@@ -14,7 +14,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
 const port = 3000;
-let token = null;
+let mailFlag = null;
 const data = {
   list: [],
   user: {},
@@ -246,11 +246,11 @@ app.get("/api/user/verify-email", async (req, res) => {
   // alert("Welcome!!! Your account has been verified.");
   res.redirect("http://localhost:8080/");
 });
+let flag = true;
 //signup
 app.get("/api/user/duplicateCheck", async (req, res) => {
   console.log("dup check: " + JSON.stringify(req.query));
 
-  let flag = true;
   let userData = await loginTry(req.query.info.name, req.query.info.password);
   let emailCheckUser = await database.run(
     `SELECT email FROM user WHERE email = ?`,
@@ -265,12 +265,14 @@ app.get("/api/user/duplicateCheck", async (req, res) => {
   console.log("emailCheckTemp: " + JSON.stringify(emailCheckTemp));
   console.log("userData: " + JSON.stringify(userData));
   console.log("length: " + length);
+
   if (length > 0) {
     console.log("user name or email");
-    flag = false;
     console.log("if 플래그 값 false임: " + flag);
+    flag = false;
     res.send(flag);
   } else {
+    flag = true;
     res.send(flag);
     console.log("else 플래그 값 true임: " + flag);
   }
@@ -278,19 +280,23 @@ app.get("/api/user/duplicateCheck", async (req, res) => {
 app.post("/api/user/signup", async (req, res) => {
   console.log("signup check: " + JSON.stringify(req.body));
 
-  result = generateEmailCryptoForAuth();
-  console.log("time: " + result.time);
-  await database.run(
-    `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
-    [
-      req.body.info.name,
-      req.body.info.email,
-      req.body.info.password,
-      result.token,
-      result.time,
-    ]
-  );
-  emailAuth(req.body.info.email, result.token, result.expire);
+  if (flag) {
+    result = generateEmailCryptoForAuth();
+    console.log("time: " + result.time);
+    await database.run(
+      `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
+      [
+        req.body.info.name,
+        req.body.info.email,
+        req.body.info.password,
+        result.token,
+        result.time,
+      ]
+    );
+    emailAuth(req.body.info.email, result.token, result.expire);
+  } else {
+    console.log("mailFlag:" + mailFlag);
+  }
 });
 ///////////////////
 
@@ -311,13 +317,15 @@ app.post("/api/user/login", async (req, res) => {
     await database.run(`UPDATE user SET login_check='true' WHERE userName=?`, [
       foundUser[0].userName,
     ]);
+    console.log("유저 베리파이: " + JSON.stringify(foundUser[0].userName));
     if (await jwt.refreshVerify(foundUser[0].userName)) {
       //only access expired.
-      token = await jwt.sign(foundUser);
+      token = await jwt.sign(foundUser[0]);
+      console.log("access token: " + JSON.stringify(token));
       console.log("리프레쉬 토큰은 만들어지지 않는다, 왜냐 만료기한 전이라서");
     } else {
       //expired both tokens.
-      token = await jwt.sign(foundUser);
+      token = await jwt.sign(foundUser[0]);
       const refreshToken = await jwt.refresh();
 
       console.log("access token: " + JSON.stringify(token));
