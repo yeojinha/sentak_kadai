@@ -154,6 +154,7 @@ import axios from "axios";
 import { useRouter, useRoute } from "vue-router";
 
 import { reactive } from "vue";
+import { registerRuntimeHelpers } from "@vue/compiler-core";
 export default {
   setup() {
     const router = useRouter();
@@ -284,7 +285,7 @@ export default {
 
     //reset
     //logIn
-    const login = () => {
+    const login = async () => {
       const loginUser = {
         name: userData.formUser.info.name,
         password: userData.formUser.info.password,
@@ -344,24 +345,30 @@ export default {
         // reset(userData);
         return;
       }
-      //check
-      // alert("verification email sent to your email");
+      // alert("userData.formUser: " + JSON.stringify(userData.formUser));
       const user = userData.formUser;
-      axios
-        .post("/api/user/signup", user)
-        .then(async (res) => {
-          let result = await res.data;
-          // alert("res.data: " + JSON.stringify(result));
+      console.log("front user: " + JSON.stringify(user));
 
-          // alert("res.data: " + JSON.stringify(result));
-          if (result === true) {
+      await axios
+        .get("/api/user/duplicateCheck", {
+          params: user,
+        })
+        .then(async (res) => {
+          if (await res.data) {
             // alert("singUp if:  " + JSON.stringify(result));
             alert("verification email sent to your email");
           } else {
             // alert("singUp else : " + result);
             alert("The ID or Email already exists.");
+            return;
           }
-        })
+        });
+
+      //check
+      // alert("verification email sent to your email");
+      await axios
+        .post("/api/user/signup", user)
+        .then(async (res) => {})
         .catch((error) => {
           console.log("Error:", error);
         });
