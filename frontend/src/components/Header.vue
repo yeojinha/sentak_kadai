@@ -154,7 +154,6 @@ import axios from "axios";
 import { useRouter, useRoute } from "vue-router";
 
 import { reactive } from "vue";
-import { registerRuntimeHelpers } from "@vue/compiler-core";
 export default {
   setup() {
     const router = useRouter();
@@ -312,7 +311,7 @@ export default {
         console.log(
           "userData user in userSet login: " + JSON.stringify(userData.user)
         );
-        window.location.reload();
+        // window.location.reload();
       });
     };
     //logIn
@@ -354,8 +353,8 @@ export default {
           params: user,
         })
         .then(async (res) => {
+          console.log("singUp if:  " + JSON.stringify(res.data));
           if (await res.data) {
-            // alert("singUp if:  " + JSON.stringify(result));
             alert("verification email sent to your email");
           } else {
             // alert("singUp else : " + result);
