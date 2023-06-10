@@ -193,7 +193,9 @@ app.get("/api/user", async (req, res) => {
     //{"user":{"info":{"name":"yeojin","email":"hayeojin4966@gmail.com"},"checked":{"login_check":true}},"iat":1686190345,"exp":1686190645,"iss":"yeojin"}
 
     const decoded = await middleWare(req);
-    console.log("DECODE: " + JSON.stringify(decoded));
+
+    if (decoded)
+      console.log("DECODE if문: " + JSON.stringify(decoded.user.info));
     if (!decoded) {
       res.send();
     } else res.send(decoded);
@@ -214,7 +216,7 @@ app.get("/api/user/verify-email", async (req, res) => {
   );
   ///expire check
   if (foundToken.length <= 0) {
-    alert("token expired due to expiration time!");
+    console.log("no token found!");
     return;
   }
   console.log("expiration check: " + time);
@@ -230,6 +232,9 @@ app.get("/api/user/verify-email", async (req, res) => {
       `INSERT INTO user (userName, email, password) VALUES(?,?,?)`,
       [foundUser[0].userName, foundUser[0].email, foundUser[0].password]
     );
+    await database.run("DELETE FROM tempuser WHERE cryptoToken =?", [
+      foundToken[0].cryptoToken,
+    ]);
   } else if (foundToken[0].expiration < time) {
     //유효기간 만료 O
     console.log(
@@ -253,28 +258,31 @@ app.get("/api/user/duplicateCheck", async (req, res) => {
 
   let userData = await loginTry(req.query.info.name, req.query.info.password);
   let emailCheckUser = await database.run(
-    `SELECT email FROM user WHERE email = ?`,
-    [req.query.info.email]
+    `SELECT email FROM user WHERE email = ? OR userName = ?`,
+    [req.query.info.email, req.query.info.name]
   );
-  let emailCheckTemp = await database.run(
-    `SELECT email FROM tempuser WHERE email = ?`,
-    [req.query.info.email]
-  );
-  let length = userData.length + emailCheckUser.length + emailCheckTemp.length;
+  // let emailCheckTemp = await database.run(
+  //   `SELECT email FROM tempuser WHERE email = ?`,
+  //   [req.query.info.email]
+  // );
+  // let length = userData.length + emailCheckUser.length + emailCheckTemp.length;
+
+  let length = userData.length + emailCheckUser.length;
   console.log("emailCheckUser: " + JSON.stringify(emailCheckUser));
-  console.log("emailCheckTemp: " + JSON.stringify(emailCheckTemp));
+  // console.log("emailCheckTemp: " + JSON.stringify(emailCheckTemp));
   console.log("userData: " + JSON.stringify(userData));
   console.log("length: " + length);
 
   if (length > 0) {
     console.log("user name or email");
-    console.log("if 플래그 값 false임: " + flag);
     flag = false;
-    res.send(flag);
+    console.log("if 플래그 값 false임: " + { flag });
+
+    res.send({ flag });
   } else {
     flag = true;
-    res.send(flag);
-    console.log("else 플래그 값 true임: " + flag);
+    console.log("else 플래그 값 true임: " + { flag });
+    res.send({ flag });
   }
 });
 app.post("/api/user/signup", async (req, res) => {
@@ -283,19 +291,39 @@ app.post("/api/user/signup", async (req, res) => {
   if (flag) {
     result = generateEmailCryptoForAuth();
     console.log("time: " + result.time);
-    await database.run(
-      `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
-      [
-        req.body.info.name,
-        req.body.info.email,
-        req.body.info.password,
-        result.token,
-        result.time,
-      ]
+
+    let foundUser = await database.run(
+      `SELECT * FROM tempuser WHERE userName =? OR email = ?`,
+      [req.body.info.name, req.body.info.email]
     );
+
+    if (foundUser.length <= 0)
+      await database.run(
+        `INSERT INTO tempuser (userName,email,password,cryptoToken,expiration) VALUES(?,?,?,?,?)`,
+        [
+          req.body.info.name,
+          req.body.info.email,
+          req.body.info.password,
+          result.token,
+          result.time,
+        ]
+      );
+    else {
+      await database.run(
+        //refresh token into database
+        "UPDATE tempuser SET userName = ?, email = ?, password = ?, cryptoToken = ?, expiration = ?",
+        [
+          req.body.info.name,
+          req.body.info.email,
+          req.body.info.password,
+          result.token,
+          result.time,
+        ]
+      );
+    }
     emailAuth(req.body.info.email, result.token, result.expire);
   } else {
-    console.log("mailFlag:" + mailFlag);
+    console.log("mailFlag:" + flag);
   }
 });
 ///////////////////

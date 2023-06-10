@@ -153,12 +153,13 @@
 import axios from "axios";
 import { useRouter, useRoute } from "vue-router";
 
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 export default {
   setup() {
     const router = useRouter();
     const route = useRoute();
-    let userData = reactive({
+    const userData = reactive({
+      test: "",
       reg: /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
       formUser: {
         info: {
@@ -168,8 +169,8 @@ export default {
           email: "",
         },
         checked: {
-          accepted: false,
-          login_check: false,
+          accepted: "",
+          login_check: "",
         },
         foundEventsId: [],
       },
@@ -191,31 +192,56 @@ export default {
       return email == "" ? "" : userData.reg.test(email) ? true : false;
     };
     const home = () => {
+      console.log(
+        "userData.user.checked.login_check -> home " +
+          userData.user.checked.login_check
+      );
+      console.log(
+        "userData.user.checked.login_check -> home " +
+          JSON.stringify(userData.user.info.name)
+      );
       router.push({
         name: "Home",
-        userName: userData.user.info.name,
-        email: userData.user.info.email,
-        accepted: userData.user.checked.accepted,
-        login_check: userData.user.checked.login_check,
-      });
-    };
-
-    const my_page = () => {
-      router.push({
-        name: "MyPage",
-        query: {
+        params: {
+          userName: userData.user.info.name,
+          email: userData.user.info.email,
           accepted: userData.user.checked.accepted,
           login_check: userData.user.checked.login_check,
         },
       });
     };
+
+    const my_page = () => {
+      console.log(
+        "userData.user.checked.login_check -> my_page " +
+          userData.user.checked.login_check
+      );
+      console.log(
+        "userData.user.checked.login_check -> my_page " +
+          JSON.stringify(userData.user.info.name)
+      );
+      router.push({
+        name: "MyPage",
+        params: {
+          userData: {
+            checked: {
+              accepted: userData.user.checked.accepted,
+              login_check: userData.user.checked.login_check,
+            },
+          },
+        },
+      });
+    };
     const userSet = (res) => {
       console.log("res.data.login_check: " + JSON.stringify(res.data));
-      if (res.data.userName) {
+      if (res.data) {
         userData.user.info.name = res.data.userName;
         userData.user.info.email = res.data.email;
         userData.user.checked.accepted = res.data.accepted;
         userData.user.checked.login_check = true;
+        console.log(
+          "userData.user.info: " + JSON.stringify(userData.user.info)
+        );
       }
       // userData.user.info.password = res.data.user.info.password;
     };
@@ -246,11 +272,18 @@ export default {
 
     //user token check
     axios.get("/api/user").then(async (res) => {
-      console.log("front user api/user: " + JSON.stringify(userData.user));
+      console.log(
+        "front user api/user: formUser " +
+          JSON.stringify(userData.formUser.info)
+      );
+      console.log(
+        "front user api/user: formUser test" + JSON.stringify(userData.test)
+      );
+      console.log("front user api/user: " + JSON.stringify(userData.user.info));
       console.log("front user token check: " + JSON.stringify(res.data));
-      if (res.data && res.data.user) {
-        userData.user.info = res.data.user.info;
-        userData.user.checked = res.data.user.checked;
+      if (await res.data) {
+        userData.user.info = await res.data.user.info;
+        userData.user.checked = await res.data.user.checked;
         console.log(
           "inside front user token check: " + JSON.stringify(userData.user)
         );
@@ -260,7 +293,9 @@ export default {
         console.log("no login now");
         userData.user.info = {};
         userData.user.checked = {};
-        router.push("/");
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
       }
     });
 
@@ -300,18 +335,18 @@ export default {
           alert("id or password error.");
           reset(userData.formUser);
           return;
-        } else if (res.data === "login") {
-          alert("user already login!!!");
-          return;
         }
         // alert("res on login: "+JSON.stringify(res.token))
         //found user
-        console.log("login->>>>>>>>>>>>>>>>" + JSON.stringify(res.data));
-        await userSet(res);
+        console.log("login response: " + JSON.stringify(res.data));
+        userSet(res);
+
+        userData.test = userData.formUser.info.name;
         console.log(
-          "userData user in userSet login: " + JSON.stringify(userData.user)
+          "userData user after userSet login: " + JSON.stringify(userData.user)
         );
-        // window.location.reload();
+
+        window.location.reload();
       });
     };
     //logIn
@@ -353,8 +388,7 @@ export default {
           params: user,
         })
         .then(async (res) => {
-          console.log("singUp if:  " + JSON.stringify(res.data));
-          if (await res.data) {
+          if (await res.data.flag) {
             alert("verification email sent to your email");
           } else {
             // alert("singUp else : " + result);
