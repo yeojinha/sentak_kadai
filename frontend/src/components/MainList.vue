@@ -426,10 +426,7 @@ export default {
         alert("Plz Login first!");
         return;
       }
-      if (state.formData.title.length <= 5) {
-        alert("state.formData.title.length<=5");
-        return;
-      }
+
       state.formData.createdAt = getToday();
       state.formData.id = new Date().getTime(); //create id
       state.formData.userName = state.userName;
