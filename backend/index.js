@@ -1,5 +1,6 @@
 const express = require("express");
 const { sendMailMaster, newMemberMail, emailAuth } = require("./mail");
+const { clear_db } = require("./temp_clear");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -14,7 +15,6 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
 const port = 3000;
-let mailFlag = null;
 const data = {
   list: [],
   user: {},
@@ -209,7 +209,7 @@ app.get("/api/user/verify-email", async (req, res) => {
   console.log("token: " + token);
 
   console.log("email: " + email);
-  const time = new Date().getTime();
+  const time = new Date().getTime(); //current time
   const foundToken = await database.run(
     `SELECT * FROM tempuser WHERE cryptoToken = ?`,
     [token]
@@ -222,7 +222,7 @@ app.get("/api/user/verify-email", async (req, res) => {
   console.log("expiration check: " + time);
   console.log("foundToken[0].expiration: " + foundToken[0].expiration);
   let foundUser = null;
-  if (foundToken[0].expiration >= time) {
+  if (time - foundToken[0].expiration <= 7200000) {
     //유효기간 만료 X
     foundUser = await database.run(
       `SELECT userName, email, password FROM tempuser WHERE email = ?`,
@@ -235,7 +235,7 @@ app.get("/api/user/verify-email", async (req, res) => {
     await database.run("DELETE FROM tempuser WHERE cryptoToken =?", [
       foundToken[0].cryptoToken,
     ]);
-  } else if (foundToken[0].expiration < time) {
+  } else if (time - foundToken[0].expiration > 7200000) {
     //유효기간 만료 O
     console.log(
       "foundToken[0].expiration < time: " + foundToken[0].expiration < time
@@ -581,6 +581,12 @@ const tempDBclear = async () => {
   }
 };
 //----------------------------------------------------------mail mail ------------------------------------------------------------------------
+
+setInterval(() => {
+  clear_db();
+}, 7200000);
+
+///----------
 app.listen(port, () => {
   console.log(`Example app listening on port http://127.0.0.1:${port}`);
 });
